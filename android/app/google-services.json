@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "52733078096",
+    "project_id": "omega-ai-73ee3",
+    "storage_bucket": "omega-ai-73ee3.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:52733078096:android:4a0bed537191ad85ec3f55",
+        "android_client_info": {
+          "package_name": "com.ai.omega"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAeA_ZQXIFphdsAogbDOLF2tInymr22imw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
