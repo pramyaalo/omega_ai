@@ -109,28 +109,66 @@ class _HomeScreenState extends State<HomeScreen> {
                       spacing: 14,
                       runSpacing: 14,
                       alignment: WrapAlignment.center,
-                      children: const [
-                        _FeatureCard(
-                          icon: Icons.lightbulb_outline,
-                          title: "Ideas",
-                          subtitle: "Brainstorm",
-                        ),
-                        _FeatureCard(
-                          icon: Icons.edit,
-                          title: "Writing",
-                          subtitle: "Create content",
-                        ),
-                        _FeatureCard(
-                          icon: Icons.code,
-                          title: "Code",
-                          subtitle: "Build apps",
-                        ),
-                        _FeatureCard(
-                          icon: Icons.bar_chart,
-                          title: "Analyze",
-                          subtitle: "Get insights",
-                        ),
-                      ],
+                       children: [_FeatureCard(
+                         icon: Icons.lightbulb_outline,
+                         title: "Ideas",
+                         subtitle: "Brainstorm",
+                         onTap: () {
+                           Navigator.push(
+                             context,
+                             MaterialPageRoute(
+                               builder: (_) => const NewChatScreen(
+                                 initialMessage: "Help me brainstorm ideas for: ",
+                               ),
+                             ),
+                           );
+                         },
+                       ),
+                         _FeatureCard(
+                           icon: Icons.edit,
+                           title: "Writing",
+                           subtitle: "Create content",
+                           onTap: () {
+                             Navigator.push(
+                               context,
+                               MaterialPageRoute(
+                                 builder: (_) => const NewChatScreen(
+                                   initialMessage: "Help me write: ",
+                                 ),
+                               ),
+                             );
+                           },
+                         ),
+                         _FeatureCard(
+                           icon: Icons.code,
+                           title: "Code",
+                           subtitle: "Build apps",
+                           onTap: () {
+                             Navigator.push(
+                               context,
+                               MaterialPageRoute(
+                                 builder: (_) => const NewChatScreen(
+                                   initialMessage: "Write code for: ",
+                                 ),
+                               ),
+                             );
+                           },
+                         ),
+                         _FeatureCard(
+                           icon: Icons.bar_chart,
+                           title: "Analyze",
+                           subtitle: "Get insights",
+                           onTap: () {
+                             Navigator.push(
+                               context,
+                               MaterialPageRoute(
+                                 builder: (_) => const NewChatScreen(
+                                   initialMessage: "Analyze this for me: ",
+                                 ),
+                               ),
+                             );
+                           },
+                         ),],
                     ),
 
                     const SizedBox(height: 40),
@@ -149,7 +187,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const NewCHatScreen(),
+                              builder: (context) => const NewChatScreen(),
                             ),
                           );
                         },
@@ -227,7 +265,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const NewCHatScreen(),
+                        builder: (context) => const NewChatScreen(),
                       ),
                     );
                   },
@@ -297,54 +335,59 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-/// 🔹 FEATURE CARD
 class _FeatureCard extends StatelessWidget {
   final IconData icon;
   final String title;
   final String subtitle;
+  final VoidCallback? onTap; // ✅ This line irukka check pannu
 
   const _FeatureCard({
     required this.icon,
     required this.title,
     required this.subtitle,
+    this.onTap, // ✅ This line irukka check pannu
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 140,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.black12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, size: 26, color: const Color(0xFF3F6F9C)),
-              const SizedBox(width: 8),
-              Text(title,
-                  style: const TextStyle(
-                      fontSize: 14, fontWeight: FontWeight.w600)),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Padding(
-            padding: const EdgeInsets.only(left: 34),
-            child: Text(
-              subtitle,
-              style: const TextStyle(fontSize: 12, color: Colors.black54),
+    return GestureDetector(
+      onTap: onTap, // ✅ This line irukka check pannu
+      child: Container(
+        width: 150,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
             ),
-          ),
-        ],
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: const Color(0xFF4F7EA6), size: 28),
+            const SizedBox(height: 10),
+            Text(title,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                )),
+            const SizedBox(height: 4),
+            Text(subtitle,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey,
+                )),
+          ],
+        ),
       ),
     );
   }
 }
-
 /// 🔹 HISTORY TILE
 class _HistoryTile extends StatelessWidget {
   final String title;
@@ -365,4 +408,5 @@ class _HistoryTile extends StatelessWidget {
       subtitle: Text(subtitle),
     );
   }
+
 }
