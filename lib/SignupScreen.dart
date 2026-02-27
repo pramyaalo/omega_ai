@@ -19,42 +19,42 @@ class _SignupScreenState extends State<SignupScreen> {
   bool isPasswordHidden = true;
   bool loading = false;
 
-  // 🔹 Firebase SignUp function
   Future<void> signup() async {
     setState(() => loading = true);
-
     try {
-      // Firebase Auth create user
       await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: emailController.text.trim(),
         password: passwordController.text.trim(),
       );
-
-      // Optional: update display name
       await FirebaseAuth.instance.currentUser?.updateDisplayName(
         nameController.text.trim(),
       );
-
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Signup successful ✅")),
       );
-
-      // Navigate to Home page or back to login
-      // Navigator.pushReplacement(...);
-
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const HomeScreen()),
+      );
     } on FirebaseAuthException catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.message ?? "Signup failed ❌")),
       );
     }
-
     setState(() => loading = false);
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFAACBE5);
+    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black;
+    final subTextColor = isDark ? Colors.white38 : Colors.black54;
+    final labelColor = isDark ? Colors.white70 : Colors.black87;
+
     return Scaffold(
-      backgroundColor: Color(0xFFAACBE5),
+      backgroundColor: bgColor,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -62,94 +62,103 @@ class _SignupScreenState extends State<SignupScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
 
-              /// 🔹 TOP Logo
+              // ── LOGO ──────────────────────────────
               Row(
-                children: const [
+                children: [
                   Text("Ω",
                       style: TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black)),
-                  SizedBox(width: 6),
+                          color: textColor)),
+                  const SizedBox(width: 6),
                   Text("OMEGA AI",
                       style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w600,
-                          color: Colors.black)),
+                          color: textColor)),
                 ],
               ),
 
-              /// 🔹 MAIN CONTENT
+              // ── MAIN CONTENT ──────────────────────
               Expanded(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      "Create your account",
-                      style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w900,
-                          color: Colors.black87),
-                    ),
+
+                    Text("Create your account",
+                        style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w900,
+                            color: textColor)),
                     const SizedBox(height: 8),
-                    const Text(
+                    Text(
                       "Get started with Omega AI in just a few steps",
-                      style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.normal,
-                          color: Colors.black45),
+                      style: TextStyle(fontSize: 14, color: subTextColor),
                     ),
                     SizedBox(
                         height: MediaQuery.of(context).size.height * 0.03),
 
-                    // 🔹 Full Name
-                    const Text("Full name",
+                    // Full Name
+                    Text("Full name",
                         style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
-                            color: Colors.black)),
+                            color: labelColor)),
                     const SizedBox(height: 6),
-                    _inputField(controller: nameController),
+                    _inputField(
+                      controller: nameController,
+                      cardColor: cardColor,
+                      textColor: textColor,
+                      isDark: isDark,
+                    ),
 
                     const SizedBox(height: 16),
 
-                    // 🔹 Email
-                    const Text("Email",
+                    // Email
+                    Text("Email",
                         style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
-                            color: Colors.black)),
+                            color: labelColor)),
                     const SizedBox(height: 6),
-                    _inputField(controller: emailController),
+                    _inputField(
+                      controller: emailController,
+                      cardColor: cardColor,
+                      textColor: textColor,
+                      isDark: isDark,
+                    ),
 
                     const SizedBox(height: 16),
 
-                    // 🔹 Password
-                    const Text("Password",
+                    // Password
+                    Text("Password",
                         style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
-                            color: Colors.black)),
+                            color: labelColor)),
                     const SizedBox(height: 6),
                     _inputField(
                       controller: passwordController,
                       isPassword: true,
+                      cardColor: cardColor,
+                      textColor: textColor,
+                      isDark: isDark,
                       suffixIcon: IconButton(
-                        icon: Icon(isPasswordHidden
-                            ? Icons.visibility_off
-                            : Icons.visibility),
-                        onPressed: () {
-                          setState(() {
-                            isPasswordHidden = !isPasswordHidden;
-                          });
-                        },
+                        icon: Icon(
+                          isPasswordHidden
+                              ? Icons.visibility_off
+                              : Icons.visibility,
+                          color: isDark ? Colors.white54 : Colors.grey,
+                        ),
+                        onPressed: () => setState(
+                                () => isPasswordHidden = !isPasswordHidden),
                       ),
                     ),
 
                     const SizedBox(height: 24),
 
-                    // 🔹 Sign Up Button
+                    // Sign Up Button
                     SizedBox(
                       width: double.infinity,
                       height: 50,
@@ -163,19 +172,17 @@ class _SignupScreenState extends State<SignupScreen> {
                           ),
                         ),
                         onPressed: signup,
-                        child: const Text(
-                          "Sign Up",
-                          style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold),
-                        ),
+                        child: const Text("Sign Up",
+                            style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold)),
                       ),
                     ),
 
                     const SizedBox(height: 16),
 
-                    // 🔹 Continue as Guest
+                    // Guest Button
                     SizedBox(
                       width: double.infinity,
                       height: 50,
@@ -186,46 +193,43 @@ class _SignupScreenState extends State<SignupScreen> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        onPressed: () { Navigator.pushReplacement(
+                        onPressed: () => Navigator.pushReplacement(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => const HomeScreen(isGuest: true),
-                          ),
-                        );},
-                        child: const Text(
-                          "Continue as Guest",
-                          style: TextStyle(
-                              fontSize: 16,
-                              color: Color(0xFF3F6F9C),
-                              fontWeight: FontWeight.bold),
+                              builder: (_) =>
+                              const HomeScreen(isGuest: true)),
                         ),
+                        child: const Text("Continue as Guest",
+                            style: TextStyle(
+                                fontSize: 16,
+                                color: Color(0xFF3F6F9C),
+                                fontWeight: FontWeight.bold)),
                       ),
                     ),
 
                     const SizedBox(height: 20),
 
-                    // 🔹 Already have account → Login
+                    // Already have account
                     Center(
                       child: RichText(
                         text: TextSpan(
-                          style: const TextStyle(color: Colors.black),
+                          style: TextStyle(color: textColor),
                           children: [
                             const TextSpan(text: "Already have an account? "),
                             TextSpan(
                               text: "Login",
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 decoration: TextDecoration.underline,
+                                color: const Color(0xFF4F7EA6),
                               ),
                               recognizer: TapGestureRecognizer()
-                                ..onTap = () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => const LoginScreen(),
-                                    ),
-                                  );
-                                },
+                                ..onTap = () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (_) =>
+                                      const LoginScreen()),
+                                ),
                             ),
                           ],
                         ),
@@ -235,13 +239,13 @@ class _SignupScreenState extends State<SignupScreen> {
                 ),
               ),
 
-              /// 🔹 Footer
-              const Center(
+              // ── FOOTER ───────────────────────────
+              Center(
                 child: Padding(
-                  padding: EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.only(bottom: 10),
                   child: Text(
                     "No credit card required. Privacy Policy",
-                    style: TextStyle(fontSize: 12, color: Colors.black54),
+                    style: TextStyle(fontSize: 12, color: subTextColor),
                   ),
                 ),
               ),
@@ -252,9 +256,11 @@ class _SignupScreenState extends State<SignupScreen> {
     );
   }
 
-  // 🔹 Reusable Input Field
   Widget _inputField({
     required TextEditingController controller,
+    required Color cardColor,
+    required Color textColor,
+    required bool isDark,
     bool isPassword = false,
     Widget? suffixIcon,
   }) {
@@ -262,15 +268,16 @@ class _SignupScreenState extends State<SignupScreen> {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor,
         borderRadius: BorderRadius.circular(12),
       ),
       child: TextField(
         controller: controller,
         obscureText: isPassword ? isPasswordHidden : false,
-        style: const TextStyle(color: Colors.black),
+        style: TextStyle(color: textColor),
         decoration: InputDecoration(
-          hintStyle: const TextStyle(color: Colors.black54),
+          hintStyle: TextStyle(
+              color: isDark ? Colors.white38 : Colors.black54),
           border: InputBorder.none,
           suffixIcon: suffixIcon,
         ),

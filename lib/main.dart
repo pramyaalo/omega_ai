@@ -1,17 +1,48 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'HomeScreen.dart';
 import 'SignupScreen.dart';
 
+// ✅ Background message handler
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+  print("Background message: ${message.notification?.title}");
+}
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+
+  // ✅ Background handler
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+  // ✅ Request permission
+  await FirebaseMessaging.instance.requestPermission(
+    alert: true,
+    badge: true,
+    sound: true,
+  );
+
+  // ✅ FCM Token
+  final token = await FirebaseMessaging.instance.getToken();
+  print("FCM Token: $token");
+
+  // ✅ Foreground message — simple print only
+  FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    print("Foreground message: ${message.notification?.title}");
+  });
+
   final prefs = await SharedPreferences.getInstance();
   final isDark = prefs.getBool('dark_mode') ?? false;
+
   runApp(OmegaApp(isDark: isDark));
 }
+
+// ... rest of OmegaApp same ah irukum
 
 class OmegaApp extends StatefulWidget {
   final bool isDark;
@@ -44,19 +75,56 @@ class _OmegaAppState extends State<OmegaApp> {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
+
+      // ── LIGHT THEME ──────────────────────────
       theme: ThemeData(
-        colorSchemeSeed: const Color(0xFF4F7EA6),
         brightness: Brightness.light,
-      ),
-      darkTheme: ThemeData(
+        scaffoldBackgroundColor: const Color(0xFFAACBE5),
+        cardColor: Colors.white,
         colorSchemeSeed: const Color(0xFF4F7EA6),
+        textTheme: const TextTheme(
+          bodyMedium: TextStyle(color: Colors.black),
+          bodyLarge: TextStyle(color: Colors.black),
+        ),
+        inputDecorationTheme: const InputDecorationTheme(
+          fillColor: Colors.white,
+        ),
+        drawerTheme: const DrawerThemeData(
+          backgroundColor: Color(0xFFEAF3FB),
+        ),
+      ),
+
+      // ── DARK THEME ───────────────────────────
+      darkTheme: ThemeData(
         brightness: Brightness.dark,
         scaffoldBackgroundColor: const Color(0xFF121212),
         cardColor: const Color(0xFF1E1E1E),
+        colorSchemeSeed: const Color(0xFF4F7EA6),
+        textTheme: const TextTheme(
+          bodyMedium: TextStyle(color: Colors.white),
+          bodyLarge: TextStyle(color: Colors.white),
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          fillColor: const Color(0xFF1E1E1E),
+          hintStyle: const TextStyle(color: Colors.white38),
+        ),
         drawerTheme: const DrawerThemeData(
-          backgroundColor: Color(0xFF1E1E1E),
+          backgroundColor: Color(0xFF1A1A1A),
+        ),
+        dividerColor: Colors.white12,
+        iconTheme: const IconThemeData(color: Colors.white),
+        listTileTheme: const ListTileThemeData(
+          textColor: Colors.white,
+          iconColor: Color(0xFF4F7EA6),
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF4F7EA6),
+            foregroundColor: Colors.white,
+          ),
         ),
       ),
+
       home: const OmegaHome(),
     );
   }
@@ -73,6 +141,7 @@ class OmegaHome extends StatelessWidget {
     final subTextColor = isDark ? Colors.white38 : Colors.black38;
 
     return Scaffold(
+      backgroundColor: bgColor,
       body: Container(
         width: double.infinity,
         height: double.infinity,
@@ -131,7 +200,8 @@ class OmegaHome extends StatelessWidget {
                       style: TextStyle(fontSize: 14, color: subTextColor),
                     ),
 
-                    SizedBox(height: MediaQuery.of(context).size.height * 0.06),
+                    SizedBox(
+                        height: MediaQuery.of(context).size.height * 0.06),
 
                     // Get Started
                     SizedBox(
@@ -144,36 +214,31 @@ class OmegaHome extends StatelessWidget {
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        onPressed: () {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                              const HomeScreen(isGuest: true),
-                            ),
-                          );
-                        },
+                        onPressed: () => Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) =>
+                              const HomeScreen(isGuest: true)),
+                        ),
                         child: const Text("Get started",
-                            style:
-                            TextStyle(fontSize: 16, color: Colors.white)),
+                            style: TextStyle(
+                                fontSize: 16, color: Colors.white)),
                       ),
                     ),
 
-                    SizedBox(height: MediaQuery.of(context).size.height * 0.03),
+                    SizedBox(
+                        height: MediaQuery.of(context).size.height * 0.03),
 
                     // Sign Up
                     SizedBox(
                       width: double.infinity,
                       height: 50,
                       child: TextButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const SignupScreen(),
-                            ),
-                          );
-                        },
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const SignupScreen()),
+                        ),
                         style: TextButton.styleFrom(
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),

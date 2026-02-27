@@ -25,17 +25,13 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  /// 🔥 Firebase Login Function
   Future<void> login() async {
     setState(() => loading = true);
-
     try {
       await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: emailController.text.trim(),
         password: passwordController.text.trim(),
       );
-
-      // ✅ Login success → HomeScreen
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const HomeScreen()),
@@ -45,101 +41,115 @@ class _LoginScreenState extends State<LoginScreen> {
         SnackBar(content: Text(e.message ?? "Login failed")),
       );
     }
-
     setState(() => loading = false);
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFAACBE5);
+    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black;
+    final subTextColor = isDark ? Colors.white38 : Colors.black54;
+    final labelColor = isDark ? Colors.white70 : Colors.black87;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFAACBE5),
+      backgroundColor: bgColor,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Column(
             children: [
 
-              /// 🔹 TOP : Logo
+              // ── LOGO ──────────────────────────────
               Row(
-                children: const [
+                children: [
                   Text("Ω",
                       style: TextStyle(
-                          fontSize: 28, fontWeight: FontWeight.bold)),
-                  SizedBox(width: 6),
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: textColor)),
+                  const SizedBox(width: 6),
                   Text("OMEGA AI",
                       style: TextStyle(
-                          fontSize: 20, fontWeight: FontWeight.w600)),
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
+                          color: textColor)),
                 ],
               ),
 
-              /// 🔹 CENTER : Login Content
+              // ── CENTER ────────────────────────────
               Expanded(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
 
-                    const Text(
-                      "Welcome back",
-                      style:
-                      TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
-                    ),
+                    Text("Welcome back",
+                        style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w600,
+                            color: textColor)),
                     const SizedBox(height: 8),
-                    const Text(
+                    Text(
                       "Login to continue working with Omega AI",
-                      style: TextStyle(fontSize: 14, color: Colors.black54),
+                      style: TextStyle(fontSize: 14, color: subTextColor),
                     ),
                     const SizedBox(height: 24),
 
-                    /// 🔹 Email
-                    const Text("Email"),
+                    // Email
+                    Text("Email",
+                        style: TextStyle(color: labelColor)),
                     const SizedBox(height: 6),
-                    _inputField(controller: emailController),
+                    _inputField(
+                      controller: emailController,
+                      cardColor: cardColor,
+                      textColor: textColor,
+                    ),
 
                     const SizedBox(height: 16),
 
-                    /// 🔹 Password
-                    const Text("Password"),
+                    // Password
+                    Text("Password",
+                        style: TextStyle(color: labelColor)),
                     const SizedBox(height: 6),
                     _inputField(
                       controller: passwordController,
                       isPassword: isPasswordHidden,
+                      cardColor: cardColor,
+                      textColor: textColor,
                       suffixIcon: IconButton(
-                        icon: Icon(isPasswordHidden
-                            ? Icons.visibility_off
-                            : Icons.visibility),
-                        onPressed: () {
-                          setState(() {
-                            isPasswordHidden = !isPasswordHidden;
-                          });
-                        },
+                        icon: Icon(
+                          isPasswordHidden
+                              ? Icons.visibility_off
+                              : Icons.visibility,
+                          color: isDark ? Colors.white54 : Colors.grey,
+                        ),
+                        onPressed: () => setState(
+                                () => isPasswordHidden = !isPasswordHidden),
                       ),
                     ),
 
-                    /// 🔹 Forgot Password
+                    // Forgot Password
                     Align(
                       alignment: Alignment.centerRight,
                       child: TextButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                              const ResetPasswordScreen(),
-                            ),
-                          );
-                        },
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const ResetPasswordScreen()),
+                        ),
                         child: const Text(
                           "Forgot password?",
                           style: TextStyle(
-                              fontSize: 13, color: Color(0xFF3F6F9C)),
+                              fontSize: 13, color: Color(0xFF4F7EA6)),
                         ),
                       ),
                     ),
 
                     const SizedBox(height: 20),
 
-                    /// 🔹 Login Button
+                    // Login Button
                     SizedBox(
                       width: double.infinity,
                       height: 50,
@@ -147,65 +157,57 @@ class _LoginScreenState extends State<LoginScreen> {
                           ? const Center(child: CircularProgressIndicator())
                           : ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                          const Color(0xFF3F6F9C),
+                          backgroundColor: const Color(0xFF3F6F9C),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
                         onPressed: login,
-                        child: const Text(
-                          "Login",
-                          style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold),
-                        ),
+                        child: const Text("Login",
+                            style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold)),
                       ),
                     ),
 
                     const SizedBox(height: 16),
 
-                    /// 🔹 Continue as Guest
+                    // Guest Button
                     SizedBox(
                       width: double.infinity,
                       height: 50,
                       child: OutlinedButton(
                         style: OutlinedButton.styleFrom(
-                          side: const BorderSide(
-                              color: Color(0xFF3F6F9C)),
+                          side: const BorderSide(color: Color(0xFF3F6F9C)),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        onPressed: () {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const HomeScreen(isGuest: true,),
-                            ),
-                          );
-                        },
-                        child: const Text(
-                          "Continue as Guest",
-                          style: TextStyle(
-                              fontSize: 16,
-                              color: Color(0xFF3F6F9C),
-                              fontWeight: FontWeight.bold),
+                        onPressed: () => Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) =>
+                              const HomeScreen(isGuest: true)),
                         ),
+                        child: const Text("Continue as Guest",
+                            style: TextStyle(
+                                fontSize: 16,
+                                color: Color(0xFF3F6F9C),
+                                fontWeight: FontWeight.bold)),
                       ),
                     ),
                   ],
                 ),
               ),
 
-              /// 🔹 BOTTOM
-              const Padding(
-                padding: EdgeInsets.only(bottom: 10),
+              // ── FOOTER ───────────────────────────
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
                 child: Text(
                   "By signing up you accept to our Terms & Privacy Policy",
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 12, color: Colors.black54),
+                  style: TextStyle(fontSize: 12, color: subTextColor),
                 ),
               ),
             ],
@@ -216,18 +218,21 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 }
 
-/// 🔹 Reusable Input Field
+// ── INPUT FIELD ──────────────────────────────
 Widget _inputField({
   required TextEditingController controller,
+  required Color cardColor,
+  required Color textColor,
   bool isPassword = false,
   Widget? suffixIcon,
 }) {
   return TextField(
     controller: controller,
     obscureText: isPassword,
+    style: TextStyle(color: textColor),
     decoration: InputDecoration(
       filled: true,
-      fillColor: Colors.white,
+      fillColor: cardColor,
       suffixIcon: suffixIcon,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),

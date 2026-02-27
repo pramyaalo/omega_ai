@@ -1,11 +1,7 @@
 plugins {
     id("com.android.application")
     id("kotlin-android")
-
-    // Flutter plugin
     id("dev.flutter.flutter-gradle-plugin")
-
-    // Google services (Firebase)
     id("com.google.gms.google-services")
 }
 
@@ -20,7 +16,7 @@ android {
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
+        jvmTarget = "17"
     }
 
     defaultConfig {
@@ -33,13 +29,11 @@ android {
 
     buildTypes {
         release {
-            // debug keystore (for now)
             signingConfig = signingConfigs.getByName("debug")
         }
     }
 }
 
-/* 🔥 DEPENDENCIES MUST BE HERE (NOT inside android {}) */
 dependencies {
     implementation(platform("com.google.firebase:firebase-bom:34.7.0"))
     implementation("com.google.firebase:firebase-analytics")

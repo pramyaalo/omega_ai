@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
   const ResetPasswordScreen({super.key});
@@ -8,148 +9,145 @@ class ResetPasswordScreen extends StatefulWidget {
 }
 
 class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
-  final TextEditingController newPasswordController = TextEditingController();
-  final TextEditingController confirmPasswordController =
-  TextEditingController();
-
-  bool isNewPasswordHidden = true;
-  bool isConfirmPasswordHidden = true;
+  final TextEditingController emailController = TextEditingController();
+  bool loading = false;
 
   @override
   void dispose() {
-    newPasswordController.dispose();
-    confirmPasswordController.dispose();
+    emailController.dispose();
     super.dispose();
+  }
+
+  Future<void> resetPassword() async {
+    if (emailController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please enter your email")),
+      );
+      return;
+    }
+    setState(() => loading = true);
+    try {
+      await FirebaseAuth.instance.sendPasswordResetEmail(
+        email: emailController.text.trim(),
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Reset link sent! Check your email ✅")),
+      );
+      Navigator.pop(context);
+    } on FirebaseAuthException catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message ?? "Failed to send reset email")),
+      );
+    }
+    setState(() => loading = false);
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFAACBE5);
+    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black;
+    final subTextColor = isDark ? Colors.white38 : Colors.black54;
+    final labelColor = isDark ? Colors.white70 : Colors.black87;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFAACBE5),
+      backgroundColor: bgColor,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Column(
             children: [
 
-              /// 🔹 TOP : Logo
+              // ── LOGO ──────────────────────────────
               Row(
-                children: const [
-                  Text(
-                    "Ω",
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  SizedBox(width: 6),
-                  Text(
-                    "OMEGA AI",
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                children: [
+                  Text("Ω",
+                      style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: textColor)),
+                  const SizedBox(width: 6),
+                  Text("OMEGA AI",
+                      style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
+                          color: textColor)),
                 ],
               ),
 
-              /// 🔹 CENTER : Reset Password Content
+              // ── CENTER ────────────────────────────
               Expanded(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
 
-                    const Text(
-                      "Welcome back",
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                    Text("Reset Password",
+                        style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w600,
+                            color: textColor)),
 
                     const SizedBox(height: 8),
 
-                    const Text(
-                      "Sign in to access your chats, exports and projects.",
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.black54,
+                    Text(
+                      "Enter your email and we'll send you a reset link.",
+                      style: TextStyle(fontSize: 14, color: subTextColor),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Email
+                    Text("Email",
+                        style: TextStyle(color: labelColor)),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: emailController,
+                      style: TextStyle(color: textColor),
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: cardColor,
+                        hintText: "Enter your email",
+                        hintStyle: TextStyle(
+                            color: isDark
+                                ? Colors.white38
+                                : Colors.black38),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
                       ),
                     ),
 
                     const SizedBox(height: 24),
 
-                    /// 🔹 New Password
-                    const Text("New Password"),
-                    const SizedBox(height: 6),
-                    _inputField(
-                      controller: newPasswordController,
-                      isPassword: isNewPasswordHidden,
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          isNewPasswordHidden
-                              ? Icons.visibility_off
-                              : Icons.visibility,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            isNewPasswordHidden = !isNewPasswordHidden;
-                          });
-                        },
-                      ),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    /// 🔹 Confirm Password
-                    const Text("Confirm password"),
-                    const SizedBox(height: 6),
-                    _inputField(
-                      controller: confirmPasswordController,
-                      isPassword: isConfirmPasswordHidden,
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          isConfirmPasswordHidden
-                              ? Icons.visibility_off
-                              : Icons.visibility,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            isConfirmPasswordHidden =
-                            !isConfirmPasswordHidden;
-                          });
-                        },
-                      ),
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    /// 🔹 Reset Button
+                    // Reset Button
                     SizedBox(
                       width: double.infinity,
                       height: 50,
-                      child: ElevatedButton(
+                      child: loading
+                          ? const Center(child: CircularProgressIndicator())
+                          : ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF3F6F9C),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        onPressed: () {},
-                        child: const Text(
-                          "Reset",
-                          style: TextStyle(fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: Colors.white,
-                          ),
-                        ),
+                        onPressed: resetPassword,
+                        child: const Text("Send Reset Link",
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                color: Colors.white)),
                       ),
                     ),
 
                     const SizedBox(height: 12),
 
-                    /// 🔹 Cancel Button
+                    // Cancel Button
                     SizedBox(
                       width: double.infinity,
                       height: 50,
@@ -160,31 +158,25 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        onPressed: () {
-                          Navigator.pop(context);
-                        },
-                        child: const Text(
-                          "Cancel",
-                          style: TextStyle(
-                            fontSize: 16,color: Color(0xFF3F6F9C),fontWeight: FontWeight.bold
-                          ),
-                        ),
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text("Cancel",
+                            style: TextStyle(
+                                fontSize: 16,
+                                color: Color(0xFF3F6F9C),
+                                fontWeight: FontWeight.bold)),
                       ),
                     ),
                   ],
                 ),
               ),
 
-              /// 🔹 BOTTOM : Terms
-              const Padding(
-                padding: EdgeInsets.only(bottom: 10),
+              // ── FOOTER ───────────────────────────
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
                 child: Text(
                   "By signing up you accept to our Terms & Privacy Policy",
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.black54,
-                  ),
+                  style: TextStyle(fontSize: 12, color: subTextColor),
                 ),
               ),
             ],
@@ -193,25 +185,4 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       ),
     );
   }
-}
-
-/// 🔹 Reusable Input Field
-Widget _inputField({
-  required TextEditingController controller,
-  bool isPassword = false,
-  Widget? suffixIcon,
-}) {
-  return TextField(
-    controller: controller,
-    obscureText: isPassword,
-    decoration: InputDecoration(
-      filled: true,
-      fillColor: Colors.white,
-      suffixIcon: suffixIcon,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide.none,
-      ),
-    ),
-  );
 }
