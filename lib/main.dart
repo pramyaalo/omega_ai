@@ -149,7 +149,7 @@ class OmegaHome extends StatelessWidget {
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle(
-        statusBarColor: bgColor, // ✅ App color same
+        statusBarColor: bgColor,
         statusBarIconBrightness:
         isDark ? Brightness.light : Brightness.dark, // ✅ Icons visible
         systemNavigationBarColor: bgColor,
