@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'NewCHatScreen.dart';
 import 'SettingsScreen.dart';
@@ -38,164 +39,172 @@ class _HomeScreenState extends State<HomeScreen> {
     final textColor = isDark ? Colors.white : Colors.black;
     final subTextColor = isDark ? Colors.white38 : Colors.black54;
 
-    return Scaffold(
-      key: _scaffoldKey,
-      backgroundColor: bgColor,
-      drawer: _buildDrawer(context, isDark, cardColor, textColor, subTextColor),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Column(
-            children: [
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle(
+        statusBarColor: bgColor, // ✅ App color same
+        statusBarIconBrightness:
+        isDark ? Brightness.light : Brightness.dark, // ✅ Icons visible
+        systemNavigationBarColor: bgColor,
+      ),
+      child: Scaffold(
+        key: _scaffoldKey,
+        backgroundColor: bgColor,
+        drawer: _buildDrawer(context, isDark, cardColor, textColor, subTextColor),
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Column(
+              children: [
 
-              // ── TOP BAR ──────────────────────────
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Text("Ω",
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                            color: textColor,
-                          )),
-                      const SizedBox(width: 6),
-                      Text("OMEGA AI",
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w600,
-                            color: textColor,
-                          )),
-                    ],
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.menu, size: 28, color: textColor),
-                    onPressed: () => _scaffoldKey.currentState?.openDrawer(),
-                  ),
-                ],
-              ),
-
-              // ── CENTER CONTENT ────────────────────
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                // ── TOP BAR ──────────────────────────
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-
-                    Padding(
-                      padding: const EdgeInsets.only(left: 20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text("Ready when you are.",
-                              style: TextStyle(
-                                fontSize: 22,
-                                fontWeight: FontWeight.w600,
-                                color: textColor,
-                              )),
-                          const SizedBox(height: 8),
-                          Text(
-                            "Start a conversation and let Omega follow.",
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: subTextColor,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 30),
-
-                    // ── FEATURE CARDS ──────────────────
-                    Wrap(
-                      spacing: 14,
-                      runSpacing: 14,
-                      alignment: WrapAlignment.center,
+                    Row(
                       children: [
-                        _FeatureCard(
-                          icon: Icons.lightbulb_outline,
-                          title: "Ideas",
-                          subtitle: "Brainstorm",
-                          cardColor: cardColor,
-                          textColor: textColor,
-                          onTap: () => Navigator.push(context,
-                              MaterialPageRoute(builder: (_) => const NewChatScreen(
-                                initialMessage: "Help me brainstorm ideas for: ",
-                              ))),
-                        ),
-                        _FeatureCard(
-                          icon: Icons.edit,
-                          title: "Writing",
-                          subtitle: "Create content",
-                          cardColor: cardColor,
-                          textColor: textColor,
-                          onTap: () => Navigator.push(context,
-                              MaterialPageRoute(builder: (_) => const NewChatScreen(
-                                initialMessage: "Help me write: ",
-                              ))),
-                        ),
-                        _FeatureCard(
-                          icon: Icons.code,
-                          title: "Code",
-                          subtitle: "Build apps",
-                          cardColor: cardColor,
-                          textColor: textColor,
-                          onTap: () => Navigator.push(context,
-                              MaterialPageRoute(builder: (_) => const NewChatScreen(
-                                initialMessage: "Write code for: ",
-                              ))),
-                        ),
-                        _FeatureCard(
-                          icon: Icons.bar_chart,
-                          title: "Analyze",
-                          subtitle: "Get insights",
-                          cardColor: cardColor,
-                          textColor: textColor,
-                          onTap: () => Navigator.push(context,
-                              MaterialPageRoute(builder: (_) => const NewChatScreen(
-                                initialMessage: "Analyze this for me: ",
-                              ))),
-                        ),
+                        Text("Ω",
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              color: textColor,
+                            )),
+                        const SizedBox(width: 6),
+                        Text("OMEGA AI",
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w600,
+                              color: textColor,
+                            )),
                       ],
                     ),
-
-                    const SizedBox(height: 40),
-
-                    // ── NEW CHAT BUTTON ────────────────
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF4F7EA6),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                        ),
-                        onPressed: () => Navigator.push(context,
-                            MaterialPageRoute(
-                                builder: (_) => const NewChatScreen())),
-                        child: const Text("New Chat",
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
-                            )),
-                      ),
+                    IconButton(
+                      icon: Icon(Icons.menu, size: 28, color: textColor),
+                      onPressed: () => _scaffoldKey.currentState?.openDrawer(),
                     ),
                   ],
                 ),
-              ),
 
-              Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: Text(
-                  "Nothing to configure. Just begin.",
-                  style: TextStyle(fontSize: 12, color: subTextColor),
+                // ── CENTER CONTENT ────────────────────
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+
+                      Padding(
+                        padding: const EdgeInsets.only(left: 20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text("Ready when you are.",
+                                style: TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w600,
+                                  color: textColor,
+                                )),
+                            const SizedBox(height: 8),
+                            Text(
+                              "Start a conversation and let Omega follow.",
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: subTextColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 30),
+
+                      // ── FEATURE CARDS ──────────────────
+                      Wrap(
+                        spacing: 14,
+                        runSpacing: 14,
+                        alignment: WrapAlignment.center,
+                        children: [
+                          _FeatureCard(
+                            icon: Icons.lightbulb_outline,
+                            title: "Ideas",
+                            subtitle: "Brainstorm",
+                            cardColor: cardColor,
+                            textColor: textColor,
+                            onTap: () => Navigator.push(context,
+                                MaterialPageRoute(builder: (_) => const NewChatScreen(
+                                  initialMessage: "Help me brainstorm ideas for: ",
+                                ))),
+                          ),
+                          _FeatureCard(
+                            icon: Icons.edit,
+                            title: "Writing",
+                            subtitle: "Create content",
+                            cardColor: cardColor,
+                            textColor: textColor,
+                            onTap: () => Navigator.push(context,
+                                MaterialPageRoute(builder: (_) => const NewChatScreen(
+                                  initialMessage: "Help me write: ",
+                                ))),
+                          ),
+                          _FeatureCard(
+                            icon: Icons.code,
+                            title: "Code",
+                            subtitle: "Build apps",
+                            cardColor: cardColor,
+                            textColor: textColor,
+                            onTap: () => Navigator.push(context,
+                                MaterialPageRoute(builder: (_) => const NewChatScreen(
+                                  initialMessage: "Write code for: ",
+                                ))),
+                          ),
+                          _FeatureCard(
+                            icon: Icons.bar_chart,
+                            title: "Analyze",
+                            subtitle: "Get insights",
+                            cardColor: cardColor,
+                            textColor: textColor,
+                            onTap: () => Navigator.push(context,
+                                MaterialPageRoute(builder: (_) => const NewChatScreen(
+                                  initialMessage: "Analyze this for me: ",
+                                ))),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 40),
+
+                      // ── NEW CHAT BUTTON ────────────────
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF4F7EA6),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          onPressed: () => Navigator.push(context,
+                              MaterialPageRoute(
+                                  builder: (_) => const NewChatScreen())),
+                          child: const Text("New Chat",
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                              )),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Text(
+                    "Nothing to configure. Just begin.",
+                    style: TextStyle(fontSize: 12, color: subTextColor),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

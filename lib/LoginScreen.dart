@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/services.dart';
 
 import 'HomeScreen.dart';
 import 'ResetPasswordScreen.dart';
@@ -53,164 +54,172 @@ class _LoginScreenState extends State<LoginScreen> {
     final subTextColor = isDark ? Colors.white38 : Colors.black54;
     final labelColor = isDark ? Colors.white70 : Colors.black87;
 
-    return Scaffold(
-      backgroundColor: bgColor,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Column(
-            children: [
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle(
+        statusBarColor: bgColor, // ✅ App color same
+        statusBarIconBrightness:
+        isDark ? Brightness.light : Brightness.dark, // ✅ Icons visible
+        systemNavigationBarColor: bgColor,
+      ),
+      child: Scaffold(
+        backgroundColor: bgColor,
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Column(
+              children: [
 
-              // ── LOGO ──────────────────────────────
-              Row(
-                children: [
-                  Text("Ω",
-                      style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: textColor)),
-                  const SizedBox(width: 6),
-                  Text("OMEGA AI",
-                      style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600,
-                          color: textColor)),
-                ],
-              ),
-
-              // ── CENTER ────────────────────────────
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                // ── LOGO ──────────────────────────────
+                Row(
                   children: [
-
-                    Text("Welcome back",
+                    Text("Ω",
                         style: TextStyle(
-                            fontSize: 22,
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: textColor)),
+                    const SizedBox(width: 6),
+                    Text("OMEGA AI",
+                        style: TextStyle(
+                            fontSize: 20,
                             fontWeight: FontWeight.w600,
                             color: textColor)),
-                    const SizedBox(height: 8),
-                    Text(
-                      "Login to continue working with Omega AI",
-                      style: TextStyle(fontSize: 14, color: subTextColor),
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Email
-                    Text("Email",
-                        style: TextStyle(color: labelColor)),
-                    const SizedBox(height: 6),
-                    _inputField(
-                      controller: emailController,
-                      cardColor: cardColor,
-                      textColor: textColor,
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // Password
-                    Text("Password",
-                        style: TextStyle(color: labelColor)),
-                    const SizedBox(height: 6),
-                    _inputField(
-                      controller: passwordController,
-                      isPassword: isPasswordHidden,
-                      cardColor: cardColor,
-                      textColor: textColor,
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          isPasswordHidden
-                              ? Icons.visibility_off
-                              : Icons.visibility,
-                          color: isDark ? Colors.white54 : Colors.grey,
-                        ),
-                        onPressed: () => setState(
-                                () => isPasswordHidden = !isPasswordHidden),
-                      ),
-                    ),
-
-                    // Forgot Password
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => const ResetPasswordScreen()),
-                        ),
-                        child: const Text(
-                          "Forgot password?",
-                          style: TextStyle(
-                              fontSize: 13, color: Color(0xFF4F7EA6)),
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    // Login Button
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: loading
-                          ? const Center(child: CircularProgressIndicator())
-                          : ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF3F6F9C),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        onPressed: login,
-                        child: const Text("Login",
-                            style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold)),
-                      ),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // Guest Button
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: OutlinedButton(
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Color(0xFF3F6F9C)),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        onPressed: () => Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) =>
-                              const HomeScreen(isGuest: true)),
-                        ),
-                        child: const Text("Continue as Guest",
-                            style: TextStyle(
-                                fontSize: 16,
-                                color: Color(0xFF3F6F9C),
-                                fontWeight: FontWeight.bold)),
-                      ),
-                    ),
                   ],
                 ),
-              ),
 
-              // ── FOOTER ───────────────────────────
-              Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: Text(
-                  "By signing up you accept to our Terms & Privacy Policy",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 12, color: subTextColor),
+                // ── CENTER ────────────────────────────
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+
+                      Text("Welcome back",
+                          style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w600,
+                              color: textColor)),
+                      const SizedBox(height: 8),
+                      Text(
+                        "Login to continue working with Omega AI",
+                        style: TextStyle(fontSize: 14, color: subTextColor),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Email
+                      Text("Email",
+                          style: TextStyle(color: labelColor)),
+                      const SizedBox(height: 6),
+                      _inputField(
+                        controller: emailController,
+                        cardColor: cardColor,
+                        textColor: textColor,
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Password
+                      Text("Password",
+                          style: TextStyle(color: labelColor)),
+                      const SizedBox(height: 6),
+                      _inputField(
+                        controller: passwordController,
+                        isPassword: isPasswordHidden,
+                        cardColor: cardColor,
+                        textColor: textColor,
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            isPasswordHidden
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                            color: isDark ? Colors.white54 : Colors.grey,
+                          ),
+                          onPressed: () => setState(
+                                  () => isPasswordHidden = !isPasswordHidden),
+                        ),
+                      ),
+
+                      // Forgot Password
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const ResetPasswordScreen()),
+                          ),
+                          child: const Text(
+                            "Forgot password?",
+                            style: TextStyle(
+                                fontSize: 13, color: Color(0xFF4F7EA6)),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      // Login Button
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: loading
+                            ? const Center(child: CircularProgressIndicator())
+                            : ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF3F6F9C),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          onPressed: login,
+                          child: const Text("Login",
+                              style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Guest Button
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Color(0xFF3F6F9C)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          onPressed: () => Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) =>
+                                const HomeScreen(isGuest: true)),
+                          ),
+                          child: const Text("Continue as Guest",
+                              style: TextStyle(
+                                  fontSize: 16,
+                                  color: Color(0xFF3F6F9C),
+                                  fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+
+                // ── FOOTER ───────────────────────────
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Text(
+                    "By signing up you accept to our Terms & Privacy Policy",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 12, color: subTextColor),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

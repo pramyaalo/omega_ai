@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:web_socket_channel/status.dart' as status;
@@ -488,379 +489,387 @@ class _NewChatScreenState extends State<NewChatScreen> {
     isDark ? const Color(0xFF1A1A1A) : const Color(0xFFEAF3FB);
     final subTextColor = isDark ? Colors.white38 : Colors.black54;
 
-    return Scaffold(
-      backgroundColor: bgColor,
-
-      // ── DRAWER ───────────────────────────────
-      drawer: Drawer(
-        backgroundColor: drawerBg,
-        child: SafeArea(
-          child: Column(
-            children: [
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
-                color: const Color(0xFF4F7EA6),
-                child: const Text("Ω OMEGA AI",
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1)),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                child: SizedBox(
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle(
+        statusBarColor: bgColor, // ✅ App color same
+        statusBarIconBrightness:
+        isDark ? Brightness.light : Brightness.dark, // ✅ Icons visible
+        systemNavigationBarColor: bgColor,
+      ),
+      child: Scaffold(
+        backgroundColor: bgColor,
+        extendBodyBehindAppBar: true,
+        // ── DRAWER ───────────────────────────────
+        drawer: Drawer(
+          backgroundColor: drawerBg,
+          child: SafeArea(
+            child: Column(
+              children: [
+                Container(
                   width: double.infinity,
-                  child: ElevatedButton.icon(
-                    icon: const Icon(Icons.add, size: 18),
-                    label: const Text("New Chat"),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF4F7EA6),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
+                  color: const Color(0xFF4F7EA6),
+                  child: const Text("Ω OMEGA AI",
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1)),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.add, size: 18),
+                      label: const Text("New Chat"),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF4F7EA6),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _startNewSession();
+                      },
                     ),
-                    onPressed: () {
-                      Navigator.pop(context);
-                      _startNewSession();
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text("Recent Chats",
+                        style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                            color: subTextColor,
+                            letterSpacing: 0.5)),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Expanded(
+                  child: sessions.isEmpty
+                      ? Center(
+                      child: Text("No chats yet",
+                          style: TextStyle(color: subTextColor)))
+                      : ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    itemCount: sessions.length,
+                    itemBuilder: (context, index) {
+                      final session = sessions[index];
+                      final isActive =
+                          session['id'] == currentSessionId;
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 4),
+                        decoration: BoxDecoration(
+                          color: isActive
+                              ? const Color(0xFF4F7EA6).withOpacity(0.15)
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: ListTile(
+                          leading: const Icon(
+                              Icons.chat_bubble_outline,
+                              color: Color(0xFF4F7EA6),
+                              size: 20),
+                          title: Text(
+                            session['title'] ?? 'Chat ${index + 1}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: textColor,
+                              fontWeight: isActive
+                                  ? FontWeight.w600
+                                  : FontWeight.normal,
+                            ),
+                          ),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.delete_outline,
+                                color: Colors.red, size: 18),
+                            onPressed: () =>
+                                _deleteSession(session['id']),
+                          ),
+                          onTap: () => _loadSession(session),
+                        ),
+                      );
                     },
                   ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text("Recent Chats",
+                const Divider(height: 1),
+                ListTile(
+                  leading:
+                  Icon(Icons.settings_outlined, color: subTextColor),
+                  title: Text("Settings",
                       style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13,
-                          color: subTextColor,
-                          letterSpacing: 0.5)),
+                          fontWeight: FontWeight.w500, color: textColor)),
+                  trailing: Icon(Icons.chevron_right, color: subTextColor),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const SettingsScreen()));
+                  },
                 ),
-              ),
-              const SizedBox(height: 8),
-              Expanded(
-                child: sessions.isEmpty
-                    ? Center(
-                    child: Text("No chats yet",
-                        style: TextStyle(color: subTextColor)))
-                    : ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  itemCount: sessions.length,
-                  itemBuilder: (context, index) {
-                    final session = sessions[index];
-                    final isActive =
-                        session['id'] == currentSessionId;
+                Builder(
+                  builder: (context) {
+                    final user = FirebaseAuth.instance.currentUser;
+                    final displayName = user?.displayName ??
+                        user?.email?.split('@')[0] ??
+                        "User";
+                    final email = user?.email ?? "guest@omega.ai";
+                    final firstLetter = displayName.isNotEmpty
+                        ? displayName[0].toUpperCase()
+                        : "U";
                     return Container(
-                      margin: const EdgeInsets.only(bottom: 4),
+                      margin: const EdgeInsets.fromLTRB(8, 0, 8, 8),
                       decoration: BoxDecoration(
-                        color: isActive
-                            ? const Color(0xFF4F7EA6).withOpacity(0.15)
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(10),
+                        color: cardColor,
+                        borderRadius: BorderRadius.circular(14),
+                        boxShadow: [
+                          BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2))
+                        ],
                       ),
                       child: ListTile(
-                        leading: const Icon(
-                            Icons.chat_bubble_outline,
-                            color: Color(0xFF4F7EA6),
-                            size: 20),
-                        title: Text(
-                          session['title'] ?? 'Chat ${index + 1}',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: textColor,
-                            fontWeight: isActive
-                                ? FontWeight.w600
-                                : FontWeight.normal,
-                          ),
+                        leading: CircleAvatar(
+                          radius: 20,
+                          backgroundColor: const Color(0xFF4F7EA6),
+                          child: Text(firstLetter,
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16)),
                         ),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.delete_outline,
-                              color: Colors.red, size: 18),
-                          onPressed: () =>
-                              _deleteSession(session['id']),
-                        ),
-                        onTap: () => _loadSession(session),
+                        title: Text(displayName,
+                            style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                                color: textColor),
+                            overflow: TextOverflow.ellipsis),
+                        subtitle: Text(email,
+                            style: const TextStyle(
+                                fontSize: 11, color: Colors.grey),
+                            overflow: TextOverflow.ellipsis),
+                        trailing: const Icon(Icons.settings,
+                            color: Color(0xFF4F7EA6), size: 20),
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const SettingsScreen()));
+                        },
                       ),
                     );
                   },
                 ),
-              ),
-              const Divider(height: 1),
-              ListTile(
-                leading:
-                Icon(Icons.settings_outlined, color: subTextColor),
-                title: Text("Settings",
-                    style: TextStyle(
-                        fontWeight: FontWeight.w500, color: textColor)),
-                trailing: Icon(Icons.chevron_right, color: subTextColor),
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => const SettingsScreen()));
-                },
-              ),
-              Builder(
-                builder: (context) {
-                  final user = FirebaseAuth.instance.currentUser;
-                  final displayName = user?.displayName ??
-                      user?.email?.split('@')[0] ??
-                      "User";
-                  final email = user?.email ?? "guest@omega.ai";
-                  final firstLetter = displayName.isNotEmpty
-                      ? displayName[0].toUpperCase()
-                      : "U";
-                  return Container(
-                    margin: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-                    decoration: BoxDecoration(
-                      color: cardColor,
-                      borderRadius: BorderRadius.circular(14),
-                      boxShadow: [
-                        BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
-                            blurRadius: 6,
-                            offset: const Offset(0, 2))
-                      ],
-                    ),
-                    child: ListTile(
-                      leading: CircleAvatar(
-                        radius: 20,
-                        backgroundColor: const Color(0xFF4F7EA6),
-                        child: Text(firstLetter,
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16)),
-                      ),
-                      title: Text(displayName,
-                          style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 14,
-                              color: textColor),
-                          overflow: TextOverflow.ellipsis),
-                      subtitle: Text(email,
-                          style: const TextStyle(
-                              fontSize: 11, color: Colors.grey),
-                          overflow: TextOverflow.ellipsis),
-                      trailing: const Icon(Icons.settings,
-                          color: Color(0xFF4F7EA6), size: 20),
-                      onTap: () {
-                        Navigator.pop(context);
-                        Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (_) => const SettingsScreen()));
-                      },
-                    ),
-                  );
-                },
-              ),
-            ],
+              ],
+            ),
           ),
         ),
-      ),
 
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          child: Column(
-            children: [
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            child: Column(
+              children: [
 
-              // ── HEADER ───────────────────────────
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Builder(
-                    builder: (context) => IconButton(
-                      icon: Icon(Icons.menu, color: textColor),
-                      onPressed: () => Scaffold.of(context).openDrawer(),
-                    ),
-                  ),
-                  Row(
-                    children: [
-                      Text("Ω",
-                          style: TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
-                              color: textColor)),
-                      const SizedBox(width: 6),
-                      Text("OMEGA AI",
-                          style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w600,
-                              color: textColor)),
-                    ],
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.add, color: Color(0xFF4F7EA6)),
-                    onPressed: _startNewSession,
-                    tooltip: "New Chat",
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 10),
-
-              // ── CHAT LIST ────────────────────────
-              Expanded(
-                child: messages.isEmpty
-                    ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // ✅ Empty state illustration
-                      Container(
-                        width: 80,
-                        height: 80,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF4F7EA6).withOpacity(0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Center(
-                          child: Text("Ω",
-                              style: TextStyle(
-                                  fontSize: 36,
-                                  color: Color(0xFF4F7EA6),
-                                  fontWeight: FontWeight.bold)),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Text("How can I help you today?",
-                          style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                              color: textColor)),
-                      const SizedBox(height: 8),
-                      Text("Ask me anything...",
-                          style: TextStyle(
-                              fontSize: 14, color: subTextColor)),
-                    ],
-                  ),
-                )
-                    : ListView.builder(
-                  controller: _scrollController, // ✅ Scroll controller
-                  itemCount: messages.length,
-                  itemBuilder: (context, index) {
-                    final msg = messages[index];
-                    final isNew = index == messages.length - 1;
-                    return ChatBubble( // ✅ ChatBubble use pannrom
-                      message: msg,
-                      isNew: isNew,
-                    );
-                  },
-                ),
-              ),
-
-              // ── IMAGE PREVIEW ────────────────────
-              if (selectedImage != null)
-                Container(
-                  margin: const EdgeInsets.only(bottom: 6),
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                      color: cardColor,
-                      borderRadius: BorderRadius.circular(12)),
-                  child: Row(
-                    children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.file(File(selectedImage!.path),
-                            width: 60, height: 60, fit: BoxFit.cover),
-                      ),
-                      const SizedBox(width: 10),
-                      Text("Image selected",
-                          style: TextStyle(color: textColor)),
-                      const Spacer(),
-                      IconButton(
-                          icon: const Icon(Icons.close, color: Colors.red),
-                          onPressed: () =>
-                              setState(() => selectedImage = null)),
-                    ],
-                  ),
-                ),
-
-              // ── FILE PREVIEW ─────────────────────
-              if (selectedFile != null)
-                Container(
-                  margin: const EdgeInsets.only(bottom: 6),
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                      color: cardColor,
-                      borderRadius: BorderRadius.circular(12)),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.insert_drive_file,
-                          color: Color(0xFF4F7EA6), size: 40),
-                      const SizedBox(width: 10),
-                      Expanded(
-                          child: Text(selectedFile!.name,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(color: textColor))),
-                      IconButton(
-                          icon: const Icon(Icons.close, color: Colors.red),
-                          onPressed: () =>
-                              setState(() => selectedFile = null)),
-                    ],
-                  ),
-                ),
-
-              // ── INPUT BAR ────────────────────────
-              Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                decoration: BoxDecoration(
-                  color: cardColor,
-                  borderRadius: BorderRadius.circular(30),
-                ),
-                child: Row(
+                // ── HEADER ───────────────────────────
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    IconButton(
-                      icon: Icon(Icons.add, color: textColor),
-                      onPressed: _showAttachmentSheet,
-                    ),
-                    Expanded(
-                      child: TextField(
-                        controller: messageController,
-                        style: TextStyle(color: textColor),
-                        decoration: InputDecoration(
-                          hintText: _isListening
-                              ? "Listening..."
-                              : "Ask anything...",
-                          hintStyle: TextStyle(
-                            color: _isListening
-                                ? Colors.red
-                                : subTextColor,
-                          ),
-                          border: InputBorder.none,
-                        ),
-                        onSubmitted: (_) => _sendMessage(),
+                    Builder(
+                      builder: (context) => IconButton(
+                        icon: Icon(Icons.menu, color: textColor),
+                        onPressed: () => Scaffold.of(context).openDrawer(),
                       ),
                     ),
-                    IconButton(
-                      icon: Icon(
-                        _isListening ? Icons.mic : Icons.mic_none,
-                        color: _isListening
-                            ? Colors.red
-                            : const Color(0xFF4F7EA6),
-                      ),
-                      onPressed: _startListening,
+                    Row(
+                      children: [
+                        Text("Ω",
+                            style: TextStyle(
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold,
+                                color: textColor)),
+                        const SizedBox(width: 6),
+                        Text("OMEGA AI",
+                            style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w600,
+                                color: textColor)),
+                      ],
                     ),
                     IconButton(
-                      icon: const Icon(Icons.send,
-                          color: Color(0xFF4F7EA6)),
-                      onPressed: _sendMessage,
+                      icon: const Icon(Icons.add, color: Color(0xFF4F7EA6)),
+                      onPressed: _startNewSession,
+                      tooltip: "New Chat",
                     ),
                   ],
                 ),
-              ),
-            ],
+
+                const SizedBox(height: 10),
+
+                // ── CHAT LIST ────────────────────────
+                Expanded(
+                  child: messages.isEmpty
+                      ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // ✅ Empty state illustration
+                        Container(
+                          width: 80,
+                          height: 80,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF4F7EA6).withOpacity(0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Center(
+                            child: Text("Ω",
+                                style: TextStyle(
+                                    fontSize: 36,
+                                    color: Color(0xFF4F7EA6),
+                                    fontWeight: FontWeight.bold)),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Text("How can I help you today?",
+                            style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                                color: textColor)),
+                        const SizedBox(height: 8),
+                        Text("Ask me anything...",
+                            style: TextStyle(
+                                fontSize: 14, color: subTextColor)),
+                      ],
+                    ),
+                  )
+                      : ListView.builder(
+                    controller: _scrollController, // ✅ Scroll controller
+                    itemCount: messages.length,
+                    itemBuilder: (context, index) {
+                      final msg = messages[index];
+                      final isNew = index == messages.length - 1;
+                      return ChatBubble( // ✅ ChatBubble use pannrom
+                        message: msg,
+                        isNew: isNew,
+                      );
+                    },
+                  ),
+                ),
+
+                // ── IMAGE PREVIEW ────────────────────
+                if (selectedImage != null)
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 6),
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                        color: cardColor,
+                        borderRadius: BorderRadius.circular(12)),
+                    child: Row(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.file(File(selectedImage!.path),
+                              width: 60, height: 60, fit: BoxFit.cover),
+                        ),
+                        const SizedBox(width: 10),
+                        Text("Image selected",
+                            style: TextStyle(color: textColor)),
+                        const Spacer(),
+                        IconButton(
+                            icon: const Icon(Icons.close, color: Colors.red),
+                            onPressed: () =>
+                                setState(() => selectedImage = null)),
+                      ],
+                    ),
+                  ),
+
+                // ── FILE PREVIEW ─────────────────────
+                if (selectedFile != null)
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 6),
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                        color: cardColor,
+                        borderRadius: BorderRadius.circular(12)),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.insert_drive_file,
+                            color: Color(0xFF4F7EA6), size: 40),
+                        const SizedBox(width: 10),
+                        Expanded(
+                            child: Text(selectedFile!.name,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(color: textColor))),
+                        IconButton(
+                            icon: const Icon(Icons.close, color: Colors.red),
+                            onPressed: () =>
+                                setState(() => selectedFile = null)),
+                      ],
+                    ),
+                  ),
+
+                // ── INPUT BAR ────────────────────────
+                Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: cardColor,
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: Icon(Icons.add, color: textColor),
+                        onPressed: _showAttachmentSheet,
+                      ),
+                      Expanded(
+                        child: TextField(
+                          controller: messageController,
+                          style: TextStyle(color: textColor),
+                          decoration: InputDecoration(
+                            hintText: _isListening
+                                ? "Listening..."
+                                : "Ask anything...",
+                            hintStyle: TextStyle(
+                              color: _isListening
+                                  ? Colors.red
+                                  : subTextColor,
+                            ),
+                            border: InputBorder.none,
+                          ),
+                          onSubmitted: (_) => _sendMessage(),
+                        ),
+                      ),
+                      IconButton(
+                        icon: Icon(
+                          _isListening ? Icons.mic : Icons.mic_none,
+                          color: _isListening
+                              ? Colors.red
+                              : const Color(0xFF4F7EA6),
+                        ),
+                        onPressed: _startListening,
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.send,
+                            color: Color(0xFF4F7EA6)),
+                        onPressed: _sendMessage,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

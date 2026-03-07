@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'HomeScreen.dart';
@@ -10,6 +11,11 @@ import 'SignupScreen.dart';
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+    statusBarIconBrightness: Brightness.dark, // dark icons = visible
+    statusBarBrightness: Brightness.light,
+  ));
   print("Background message: ${message.notification?.title}");
 }
 
@@ -72,6 +78,7 @@ class _OmegaAppState extends State<OmegaApp> {
 
   @override
   Widget build(BuildContext context) {
+
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
@@ -140,137 +147,145 @@ class OmegaHome extends StatelessWidget {
     final textColor = isDark ? Colors.white : Colors.black;
     final subTextColor = isDark ? Colors.white38 : Colors.black38;
 
-    return Scaffold(
-      backgroundColor: bgColor,
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        color: bgColor,
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle(
+        statusBarColor: bgColor, // ✅ App color same
+        statusBarIconBrightness:
+        isDark ? Brightness.light : Brightness.dark, // ✅ Icons visible
+        systemNavigationBarColor: bgColor,
+      ),
+      child: Scaffold(
+        backgroundColor: bgColor,
+        body: Container(
+          width: double.infinity,
+          height: double.infinity,
+          color: bgColor,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
 
-            // ── LOGO ──────────────────────────────
-            Padding(
-              padding: const EdgeInsets.only(top: 40, left: 20),
-              child: Row(
-                children: [
-                  Text("Ω",
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: textColor,
-                      )),
-                  const SizedBox(width: 6),
-                  Text("OMEGA AI",
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                        color: textColor,
-                      )),
-                ],
-              ),
-            ),
-
-            // ── CENTER CONTENT ────────────────────
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              // ── LOGO ──────────────────────────────
+              Padding(
+                padding: const EdgeInsets.only(top: 40, left: 20),
+                child: Row(
                   children: [
-                    Text("Think smarter.",
+                    Text("Ω",
                         style: TextStyle(
-                          fontSize: 25,
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
                           color: textColor,
-                          fontWeight: FontWeight.w900,
                         )),
-                    const SizedBox(height: 4),
-                    Text("Work faster.",
+                    const SizedBox(width: 6),
+                    Text("OMEGA AI",
                         style: TextStyle(
-                          fontSize: 25,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
                           color: textColor,
-                          fontWeight: FontWeight.w900,
                         )),
-                    const SizedBox(height: 16),
-                    Text(
-                      "Collaborate, analyze and build faster - all in one intelligent AI workspace.",
-                      style: TextStyle(fontSize: 14, color: subTextColor),
-                    ),
-
-                    SizedBox(
-                        height: MediaQuery.of(context).size.height * 0.06),
-
-                    // Get Started
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF3F6F9C),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        onPressed: () => Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) =>
-                              const HomeScreen(isGuest: true)),
-                        ),
-                        child: const Text("Get started",
-                            style: TextStyle(
-                                fontSize: 16, color: Colors.white)),
-                      ),
-                    ),
-
-                    SizedBox(
-                        height: MediaQuery.of(context).size.height * 0.03),
-
-                    // Sign Up
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: TextButton(
-                        onPressed: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => const SignupScreen()),
-                        ),
-                        style: TextButton.styleFrom(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            side: const BorderSide(
-                              color: Color(0xFF3F6F9C),
-                              width: 1.5,
-                            ),
-                          ),
-                        ),
-                        child: const Text("Sign Up",
-                            style: TextStyle(
-                              fontSize: 15,
-                              color: Color(0xFF3F6F9C),
-                            )),
-                      ),
-                    ),
                   ],
                 ),
               ),
-            ),
 
-            // ── FOOTER ───────────────────────────
-            Padding(
-              padding: const EdgeInsets.only(bottom: 20),
-              child: Center(
-                child: Text(
-                  "No credit card required. Privacy Policy",
-                  style: TextStyle(fontSize: 12, color: subTextColor),
+              // ── CENTER CONTENT ────────────────────
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("Think smarter.",
+                          style: TextStyle(
+                            fontSize: 25,
+                            color: textColor,
+                            fontWeight: FontWeight.w900,
+                          )),
+                      const SizedBox(height: 4),
+                      Text("Work faster.",
+                          style: TextStyle(
+                            fontSize: 25,
+                            color: textColor,
+                            fontWeight: FontWeight.w900,
+                          )),
+                      const SizedBox(height: 16),
+                      Text(
+                        "Collaborate, analyze and build faster - all in one intelligent AI workspace.",
+                        style: TextStyle(fontSize: 14, color: subTextColor),
+                      ),
+
+                      SizedBox(
+                          height: MediaQuery.of(context).size.height * 0.06),
+
+                      // Get Started
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF3F6F9C),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          onPressed: () => Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) =>
+                                const HomeScreen(isGuest: true)),
+                          ),
+                          child: const Text("Get started",
+                              style: TextStyle(
+                                  fontSize: 16, color: Colors.white)),
+                        ),
+                      ),
+
+                      SizedBox(
+                          height: MediaQuery.of(context).size.height * 0.03),
+
+                      // Sign Up
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: TextButton(
+                          onPressed: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const SignupScreen()),
+                          ),
+                          style: TextButton.styleFrom(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              side: const BorderSide(
+                                color: Color(0xFF3F6F9C),
+                                width: 1.5,
+                              ),
+                            ),
+                          ),
+                          child: const Text("Sign Up",
+                              style: TextStyle(
+                                fontSize: 15,
+                                color: Color(0xFF3F6F9C),
+                              )),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+
+              // ── FOOTER ───────────────────────────
+              Padding(
+                padding: const EdgeInsets.only(bottom: 20),
+                child: Center(
+                  child: Text(
+                    "No credit card required. Privacy Policy",
+                    style: TextStyle(fontSize: 12, color: subTextColor),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
