@@ -31,7 +31,7 @@ Future<void> main() async {
   final token = await FirebaseMessaging.instance.getToken();
   print("FCM Token: $token");
 
-  // ✅ Foreground message — simple print only
+  // ✅ Foreground message — sim++++++++++++++++++++++++++++++++++++++++++++++ple print only
   FirebaseMessaging.onMessage.listen((RemoteMessage message) {
     print("Foreground message: ${message.notification?.title}");
   });

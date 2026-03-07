@@ -7,7 +7,9 @@ import 'package:web_socket_channel/status.dart' as status;
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:speech_to_text/speech_to_text.dart';
 import 'SettingsScreen.dart';
+import 'ChatBubble.dart'; // ✅ ChatBubble import
 
 class NewChatScreen extends StatefulWidget {
   final String? initialMessage;
@@ -19,6 +21,7 @@ class NewChatScreen extends StatefulWidget {
 
 class _NewChatScreenState extends State<NewChatScreen> {
   final TextEditingController messageController = TextEditingController();
+  final ScrollController _scrollController = ScrollController(); // ✅ Auto scroll
   WebSocketChannel? channel;
   final ImagePicker _picker = ImagePicker();
   XFile? selectedImage;
@@ -27,10 +30,13 @@ class _NewChatScreenState extends State<NewChatScreen> {
   List<Map<String, dynamic>> sessions = [];
   String currentSessionId = "";
   List<Map<String, dynamic>> messages = [];
+  final SpeechToText _speech = SpeechToText();
+  bool _isListening = false;
 
   @override
   void initState() {
     super.initState();
+    _initSpeech();
     _loadSessions().then((_) {
       if (widget.initialMessage != null && widget.initialMessage!.isNotEmpty) {
         messageController.text = widget.initialMessage!;
@@ -41,6 +47,68 @@ class _NewChatScreenState extends State<NewChatScreen> {
     });
   }
 
+  // ── AUTO SCROLL ──────────────────────────────
+  void _scrollToBottom() {
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
+  Future<void> _initSpeech() async {
+    await _speech.initialize();
+    setState(() {});
+  }
+
+  Future<void> _startListening() async {
+    if (!_isListening) {
+      bool available = await _speech.initialize(
+        onStatus: (status) {
+          if (status == 'done' || status == 'notListening') {
+            setState(() => _isListening = false);
+            if (messageController.text.trim().isNotEmpty) {
+              _sendMessage();
+            }
+          }
+        },
+        onError: (error) => setState(() => _isListening = false),
+      );
+
+      if (available) {
+        setState(() => _isListening = true);
+        await _speech.listen(
+          onResult: (result) {
+            setState(() => messageController.text = result.recognizedWords);
+            if (result.finalResult) {
+              setState(() => _isListening = false);
+              _speech.stop();
+              Future.delayed(const Duration(milliseconds: 300), () {
+                if (messageController.text.trim().isNotEmpty) {
+                  _sendMessage();
+                }
+              });
+            }
+          },
+          localeId: 'en_US',
+          listenMode: ListenMode.confirmation,
+        );
+      }
+    } else {
+      setState(() => _isListening = false);
+      await _speech.stop();
+      if (messageController.text.trim().isNotEmpty) {
+        Future.delayed(const Duration(milliseconds: 300), () {
+          _sendMessage();
+        });
+      }
+    }
+  }
+
   String _generateId() => DateTime.now().millisecondsSinceEpoch.toString();
 
   Future<void> _loadSessions() async {
@@ -48,9 +116,7 @@ class _NewChatScreenState extends State<NewChatScreen> {
     final saved = prefs.getString('sessions');
     if (saved != null) {
       final List decoded = jsonDecode(saved);
-      setState(() {
-        sessions = decoded.cast<Map<String, dynamic>>();
-      });
+      setState(() => sessions = decoded.cast<Map<String, dynamic>>());
     }
     _startNewSession();
   }
@@ -80,6 +146,7 @@ class _NewChatScreenState extends State<NewChatScreen> {
     Navigator.pop(context);
     try { channel?.sink.close(status.goingAway); } catch (_) {}
     _connectWebSocket();
+    _scrollToBottom();
   }
 
   void _deleteSession(String id) {
@@ -97,22 +164,28 @@ class _NewChatScreenState extends State<NewChatScreen> {
     final title = (firstMsg['text'] as String).length > 30
         ? (firstMsg['text'] as String).substring(0, 30) + "..."
         : firstMsg['text'] as String;
-    final toSave = messages.map((m) => {
-      "text": m["text"] ?? "",
-      "isMe": m["isMe"],
-    }).toList();
-    final existingIndex = sessions.indexWhere((s) => s['id'] == currentSessionId);
+    final toSave = messages
+        .map((m) => {"text": m["text"] ?? "", "isMe": m["isMe"]})
+        .toList();
+    final existingIndex =
+    sessions.indexWhere((s) => s['id'] == currentSessionId);
     if (existingIndex >= 0) {
-      sessions[existingIndex] = {'id': currentSessionId, 'title': title, 'messages': toSave};
+      sessions[existingIndex] = {
+        'id': currentSessionId,
+        'title': title,
+        'messages': toSave
+      };
     } else {
-      sessions.insert(0, {'id': currentSessionId, 'title': title, 'messages': toSave});
+      sessions.insert(
+          0, {'id': currentSessionId, 'title': title, 'messages': toSave});
     }
     _saveSessions();
   }
 
   void _connectWebSocket() {
     try { channel?.sink.close(status.goingAway); } catch (_) {}
-    channel = WebSocketChannel.connect(Uri.parse('ws://192.168.1.4:8000/ws/chat/'));
+    channel = WebSocketChannel.connect(
+        Uri.parse('ws://192.168.1.4:8000/ws/chat/'));
     channel!.stream.listen(
           (data) {
         final decoded = jsonDecode(data);
@@ -141,6 +214,7 @@ class _NewChatScreenState extends State<NewChatScreen> {
             _saveCurrentSession();
           }
         });
+        _scrollToBottom(); // ✅ Auto scroll on new message
       },
       onError: (error) {
         Future.delayed(const Duration(seconds: 2), _connectWebSocket);
@@ -161,6 +235,7 @@ class _NewChatScreenState extends State<NewChatScreen> {
       setState(() => messages.add({"text": text, "isMe": true}));
       channel!.sink.add(jsonEncode({"message": text}));
       messageController.clear();
+      _scrollToBottom(); // ✅ Auto scroll
     }
   }
 
@@ -183,10 +258,12 @@ class _NewChatScreenState extends State<NewChatScreen> {
       "image_ext": ext,
     }));
     messageController.clear();
+    _scrollToBottom();
   }
 
   Future<void> _sendFile(String caption) async {
-    final bytes = selectedFile!.bytes ?? await File(selectedFile!.path!).readAsBytes();
+    final bytes =
+        selectedFile!.bytes ?? await File(selectedFile!.path!).readAsBytes();
     final base64File = base64Encode(bytes);
     final name = selectedFile!.name;
     setState(() {
@@ -199,11 +276,13 @@ class _NewChatScreenState extends State<NewChatScreen> {
       "file_name": name,
     }));
     messageController.clear();
+    _scrollToBottom();
   }
 
   Future<void> _pickImage(ImageSource source) async {
     final image = await _picker.pickImage(source: source);
-    if (image != null) setState(() { selectedImage = image; selectedFile = null; });
+    if (image != null)
+      setState(() { selectedImage = image; selectedFile = null; });
   }
 
   Future<void> _pickFile() async {
@@ -231,26 +310,48 @@ class _NewChatScreenState extends State<NewChatScreen> {
               Container(
                 width: 40, height: 4,
                 margin: const EdgeInsets.only(bottom: 20),
-                decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2)),
+                decoration: BoxDecoration(
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.circular(2)),
               ),
               const Align(
                 alignment: Alignment.centerLeft,
-                child: Text("Attach", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                child: Text("Attach",
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold)),
               ),
               const SizedBox(height: 16),
               Row(
                 children: [
-                  _attachOption(Icons.camera_alt_rounded, "Camera", const Color(0xFF0F3460), () { Navigator.pop(context); _pickImage(ImageSource.camera); }),
+                  _attachOption(Icons.camera_alt_rounded, "Camera",
+                      const Color(0xFF0F3460), () {
+                        Navigator.pop(context);
+                        _pickImage(ImageSource.camera);
+                      }),
                   const SizedBox(width: 12),
-                  _attachOption(Icons.photo_library_rounded, "Gallery", const Color(0xFF16213E), () { Navigator.pop(context); _pickImage(ImageSource.gallery); }),
+                  _attachOption(Icons.photo_library_rounded, "Gallery",
+                      const Color(0xFF16213E), () {
+                        Navigator.pop(context);
+                        _pickImage(ImageSource.gallery);
+                      }),
                   const SizedBox(width: 12),
-                  _attachOption(Icons.insert_drive_file_rounded, "Files", const Color(0xFF0F3460), () { Navigator.pop(context); _pickFile(); }),
+                  _attachOption(Icons.insert_drive_file_rounded, "Files",
+                      const Color(0xFF0F3460), () {
+                        Navigator.pop(context);
+                        _pickFile();
+                      }),
                 ],
               ),
               const SizedBox(height: 24),
               const Align(
                 alignment: Alignment.centerLeft,
-                child: Text("Quick Actions", style: TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.w600)),
+                child: Text("Quick Actions",
+                    style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600)),
               ),
               const SizedBox(height: 12),
               GridView.count(
@@ -261,15 +362,51 @@ class _NewChatScreenState extends State<NewChatScreen> {
                 mainAxisSpacing: 10,
                 childAspectRatio: 1.1,
                 children: [
-                  _quickAction(Icons.image_search_rounded, "Create Image", const Color(0xFFE94560), () { Navigator.pop(context); messageController.text = "Create an image of "; }),
-                  _quickAction(Icons.psychology_rounded, "Deep Think", const Color(0xFF533483), () { Navigator.pop(context); messageController.text = "Think deeply and explain: "; }),
-                  _quickAction(Icons.travel_explore_rounded, "Web Search", const Color(0xFF0F3460), () { Navigator.pop(context); messageController.text = "Search and tell me about: "; }),
-                  _quickAction(Icons.shopping_bag_rounded, "Shopping", const Color(0xFF2B9348), () { Navigator.pop(context); messageController.text = "Best options to buy: "; }),
-                  _quickAction(Icons.science_rounded, "Research", const Color(0xFFB5451B), () { Navigator.pop(context); messageController.text = "Research and summarize: "; }),
-                  _quickAction(Icons.school_rounded, "Study", const Color(0xFF1B4332), () { Navigator.pop(context); messageController.text = "Teach me about: "; }),
-                  _quickAction(Icons.explore_rounded, "Explore", const Color(0xFF2D6A4F), () { Navigator.pop(context); messageController.text = "Explore the topic: "; }),
-                  _quickAction(Icons.calculate_rounded, "Math", const Color(0xFF6A0572), () { Navigator.pop(context); messageController.text = "Solve this: "; }),
-                  _quickAction(Icons.code_rounded, "Code", const Color(0xFF1A1A4E), () { Navigator.pop(context); messageController.text = "Write code for: "; }),
+                  _quickAction(Icons.image_search_rounded, "Create Image",
+                      const Color(0xFFE94560), () {
+                        Navigator.pop(context);
+                        messageController.text = "Create an image of ";
+                      }),
+                  _quickAction(Icons.psychology_rounded, "Deep Think",
+                      const Color(0xFF533483), () {
+                        Navigator.pop(context);
+                        messageController.text = "Think deeply and explain: ";
+                      }),
+                  _quickAction(Icons.travel_explore_rounded, "Web Search",
+                      const Color(0xFF0F3460), () {
+                        Navigator.pop(context);
+                        messageController.text = "Search and tell me about: ";
+                      }),
+                  _quickAction(Icons.shopping_bag_rounded, "Shopping",
+                      const Color(0xFF2B9348), () {
+                        Navigator.pop(context);
+                        messageController.text = "Best options to buy: ";
+                      }),
+                  _quickAction(Icons.science_rounded, "Research",
+                      const Color(0xFFB5451B), () {
+                        Navigator.pop(context);
+                        messageController.text = "Research and summarize: ";
+                      }),
+                  _quickAction(Icons.school_rounded, "Study",
+                      const Color(0xFF1B4332), () {
+                        Navigator.pop(context);
+                        messageController.text = "Teach me about: ";
+                      }),
+                  _quickAction(Icons.explore_rounded, "Explore",
+                      const Color(0xFF2D6A4F), () {
+                        Navigator.pop(context);
+                        messageController.text = "Explore the topic: ";
+                      }),
+                  _quickAction(Icons.calculate_rounded, "Math",
+                      const Color(0xFF6A0572), () {
+                        Navigator.pop(context);
+                        messageController.text = "Solve this: ";
+                      }),
+                  _quickAction(Icons.code_rounded, "Code",
+                      const Color(0xFF1A1A4E), () {
+                        Navigator.pop(context);
+                        messageController.text = "Write code for: ";
+                      }),
                 ],
               ),
             ],
@@ -279,18 +416,26 @@ class _NewChatScreenState extends State<NewChatScreen> {
     );
   }
 
-  Widget _attachOption(IconData icon, String label, Color color, VoidCallback onTap) {
+  Widget _attachOption(
+      IconData icon, String label, Color color, VoidCallback onTap) {
     return Expanded(
       child: GestureDetector(
         onTap: onTap,
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 16),
-          decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white10)),
+          decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white10)),
           child: Column(
             children: [
               Icon(icon, color: Colors.white, size: 28),
               const SizedBox(height: 6),
-              Text(label, style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w500)),
+              Text(label,
+                  style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500)),
             ],
           ),
         ),
@@ -298,17 +443,26 @@ class _NewChatScreenState extends State<NewChatScreen> {
     );
   }
 
-  Widget _quickAction(IconData icon, String label, Color color, VoidCallback onTap) {
+  Widget _quickAction(
+      IconData icon, String label, Color color, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(14), border: Border.all(color: Colors.white10)),
+        decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: Colors.white10)),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(icon, color: Colors.white, size: 24),
             const SizedBox(height: 6),
-            Text(label, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w500)),
+            Text(label,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w500)),
           ],
         ),
       ),
@@ -319,16 +473,19 @@ class _NewChatScreenState extends State<NewChatScreen> {
   void dispose() {
     channel?.sink.close(status.goingAway);
     messageController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFAACBE5);
+    final bgColor =
+    isDark ? const Color(0xFF121212) : const Color(0xFFAACBE5);
     final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
     final textColor = isDark ? Colors.white : Colors.black;
-    final drawerBg = isDark ? const Color(0xFF1A1A1A) : const Color(0xFFEAF3FB);
+    final drawerBg =
+    isDark ? const Color(0xFF1A1A1A) : const Color(0xFFEAF3FB);
     final subTextColor = isDark ? Colors.white38 : Colors.black54;
 
     return Scaffold(
@@ -340,17 +497,17 @@ class _NewChatScreenState extends State<NewChatScreen> {
         child: SafeArea(
           child: Column(
             children: [
-
-              // Header
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
                 color: const Color(0xFF4F7EA6),
                 child: const Text("Ω OMEGA AI",
-                    style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1)),
               ),
-
-              // New Chat
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
                 child: SizedBox(
@@ -362,45 +519,55 @@ class _NewChatScreenState extends State<NewChatScreen> {
                       backgroundColor: const Color(0xFF4F7EA6),
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
                     ),
-                    onPressed: () { Navigator.pop(context); _startNewSession(); },
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _startNewSession();
+                    },
                   ),
                 ),
               ),
-
               const SizedBox(height: 16),
-
-              // History title
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Align(
                   alignment: Alignment.centerLeft,
                   child: Text("Recent Chats",
-                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: subTextColor, letterSpacing: 0.5)),
+                      style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                          color: subTextColor,
+                          letterSpacing: 0.5)),
                 ),
               ),
-
               const SizedBox(height: 8),
-
-              // Chat list
               Expanded(
                 child: sessions.isEmpty
-                    ? Center(child: Text("No chats yet", style: TextStyle(color: subTextColor)))
+                    ? Center(
+                    child: Text("No chats yet",
+                        style: TextStyle(color: subTextColor)))
                     : ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   itemCount: sessions.length,
                   itemBuilder: (context, index) {
                     final session = sessions[index];
-                    final isActive = session['id'] == currentSessionId;
+                    final isActive =
+                        session['id'] == currentSessionId;
                     return Container(
                       margin: const EdgeInsets.only(bottom: 4),
                       decoration: BoxDecoration(
-                        color: isActive ? const Color(0xFF4F7EA6).withOpacity(0.15) : Colors.transparent,
+                        color: isActive
+                            ? const Color(0xFF4F7EA6).withOpacity(0.15)
+                            : Colors.transparent,
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: ListTile(
-                        leading: const Icon(Icons.chat_bubble_outline, color: Color(0xFF4F7EA6), size: 20),
+                        leading: const Icon(
+                            Icons.chat_bubble_outline,
+                            color: Color(0xFF4F7EA6),
+                            size: 20),
                         title: Text(
                           session['title'] ?? 'Chat ${index + 1}',
                           maxLines: 1,
@@ -408,12 +575,16 @@ class _NewChatScreenState extends State<NewChatScreen> {
                           style: TextStyle(
                             fontSize: 14,
                             color: textColor,
-                            fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+                            fontWeight: isActive
+                                ? FontWeight.w600
+                                : FontWeight.normal,
                           ),
                         ),
                         trailing: IconButton(
-                          icon: const Icon(Icons.delete_outline, color: Colors.red, size: 18),
-                          onPressed: () => _deleteSession(session['id']),
+                          icon: const Icon(Icons.delete_outline,
+                              color: Colors.red, size: 18),
+                          onPressed: () =>
+                              _deleteSession(session['id']),
                         ),
                         onTap: () => _loadSession(session),
                       ),
@@ -421,50 +592,72 @@ class _NewChatScreenState extends State<NewChatScreen> {
                   },
                 ),
               ),
-
               const Divider(height: 1),
-
-              // Settings
               ListTile(
-                leading: Icon(Icons.settings_outlined, color: subTextColor),
-                title: Text("Settings", style: TextStyle(fontWeight: FontWeight.w500, color: textColor)),
+                leading:
+                Icon(Icons.settings_outlined, color: subTextColor),
+                title: Text("Settings",
+                    style: TextStyle(
+                        fontWeight: FontWeight.w500, color: textColor)),
                 trailing: Icon(Icons.chevron_right, color: subTextColor),
                 onTap: () {
                   Navigator.pop(context);
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const SettingsScreen()));
                 },
               ),
-
-              // Profile card
               Builder(
                 builder: (context) {
                   final user = FirebaseAuth.instance.currentUser;
-                  final displayName = user?.displayName ?? user?.email?.split('@')[0] ?? "User";
+                  final displayName = user?.displayName ??
+                      user?.email?.split('@')[0] ??
+                      "User";
                   final email = user?.email ?? "guest@omega.ai";
-                  final firstLetter = displayName.isNotEmpty ? displayName[0].toUpperCase() : "U";
+                  final firstLetter = displayName.isNotEmpty
+                      ? displayName[0].toUpperCase()
+                      : "U";
                   return Container(
                     margin: const EdgeInsets.fromLTRB(8, 0, 8, 8),
                     decoration: BoxDecoration(
                       color: cardColor,
                       borderRadius: BorderRadius.circular(14),
-                      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 6, offset: const Offset(0, 2))],
+                      boxShadow: [
+                        BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2))
+                      ],
                     ),
                     child: ListTile(
                       leading: CircleAvatar(
                         radius: 20,
                         backgroundColor: const Color(0xFF4F7EA6),
-                        child: Text(firstLetter, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                        child: Text(firstLetter,
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16)),
                       ),
                       title: Text(displayName,
-                          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: textColor),
+                          style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                              color: textColor),
                           overflow: TextOverflow.ellipsis),
                       subtitle: Text(email,
-                          style: const TextStyle(fontSize: 11, color: Colors.grey),
+                          style: const TextStyle(
+                              fontSize: 11, color: Colors.grey),
                           overflow: TextOverflow.ellipsis),
-                      trailing: const Icon(Icons.settings, color: Color(0xFF4F7EA6), size: 20),
+                      trailing: const Icon(Icons.settings,
+                          color: Color(0xFF4F7EA6), size: 20),
                       onTap: () {
                         Navigator.pop(context);
-                        Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const SettingsScreen()));
                       },
                     ),
                   );
@@ -493,9 +686,17 @@ class _NewChatScreenState extends State<NewChatScreen> {
                   ),
                   Row(
                     children: [
-                      Text("Ω", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: textColor)),
+                      Text("Ω",
+                          style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              color: textColor)),
                       const SizedBox(width: 6),
-                      Text("OMEGA AI", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: textColor)),
+                      Text("OMEGA AI",
+                          style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w600,
+                              color: textColor)),
                     ],
                   ),
                   IconButton(
@@ -512,47 +713,47 @@ class _NewChatScreenState extends State<NewChatScreen> {
               Expanded(
                 child: messages.isEmpty
                     ? Center(
-                    child: Text("Start a new conversation!",
-                        style: TextStyle(color: subTextColor, fontSize: 16)))
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // ✅ Empty state illustration
+                      Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF4F7EA6).withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Center(
+                          child: Text("Ω",
+                              style: TextStyle(
+                                  fontSize: 36,
+                                  color: Color(0xFF4F7EA6),
+                                  fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text("How can I help you today?",
+                          style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              color: textColor)),
+                      const SizedBox(height: 8),
+                      Text("Ask me anything...",
+                          style: TextStyle(
+                              fontSize: 14, color: subTextColor)),
+                    ],
+                  ),
+                )
                     : ListView.builder(
+                  controller: _scrollController, // ✅ Scroll controller
                   itemCount: messages.length,
                   itemBuilder: (context, index) {
                     final msg = messages[index];
-                    final isMe = msg["isMe"] as bool;
-                    final isTyping = msg["typing"] == true;
-                    final imageBase64 = msg["imageBase64"];
-
-                    return Align(
-                      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(vertical: 4),
-                        padding: const EdgeInsets.all(10),
-                        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.7),
-                        decoration: BoxDecoration(
-                          color: isMe ? const Color(0xFF4F7EA6) : cardColor,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: isTyping
-                            ? Text("🤖 Typing...",
-                            style: TextStyle(fontStyle: FontStyle.italic, color: subTextColor))
-                            : Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (imageBase64 != null)
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: Image.memory(base64Decode(imageBase64), width: 200, fit: BoxFit.cover),
-                              ),
-                            if (imageBase64 != null) const SizedBox(height: 6),
-                            Text(
-                              msg["text"] ?? "",
-                              style: TextStyle(
-                                color: isMe ? Colors.white : textColor,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                    final isNew = index == messages.length - 1;
+                    return ChatBubble( // ✅ ChatBubble use pannrom
+                      message: msg,
+                      isNew: isNew,
                     );
                   },
                 ),
@@ -563,17 +764,24 @@ class _NewChatScreenState extends State<NewChatScreen> {
                 Container(
                   margin: const EdgeInsets.only(bottom: 6),
                   padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(12)),
+                  decoration: BoxDecoration(
+                      color: cardColor,
+                      borderRadius: BorderRadius.circular(12)),
                   child: Row(
                     children: [
                       ClipRRect(
                         borderRadius: BorderRadius.circular(8),
-                        child: Image.file(File(selectedImage!.path), width: 60, height: 60, fit: BoxFit.cover),
+                        child: Image.file(File(selectedImage!.path),
+                            width: 60, height: 60, fit: BoxFit.cover),
                       ),
                       const SizedBox(width: 10),
-                      Text("Image selected", style: TextStyle(color: textColor)),
+                      Text("Image selected",
+                          style: TextStyle(color: textColor)),
                       const Spacer(),
-                      IconButton(icon: const Icon(Icons.close, color: Colors.red), onPressed: () => setState(() => selectedImage = null)),
+                      IconButton(
+                          icon: const Icon(Icons.close, color: Colors.red),
+                          onPressed: () =>
+                              setState(() => selectedImage = null)),
                     ],
                   ),
                 ),
@@ -583,13 +791,22 @@ class _NewChatScreenState extends State<NewChatScreen> {
                 Container(
                   margin: const EdgeInsets.only(bottom: 6),
                   padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(12)),
+                  decoration: BoxDecoration(
+                      color: cardColor,
+                      borderRadius: BorderRadius.circular(12)),
                   child: Row(
                     children: [
-                      const Icon(Icons.insert_drive_file, color: Color(0xFF4F7EA6), size: 40),
+                      const Icon(Icons.insert_drive_file,
+                          color: Color(0xFF4F7EA6), size: 40),
                       const SizedBox(width: 10),
-                      Expanded(child: Text(selectedFile!.name, overflow: TextOverflow.ellipsis, style: TextStyle(color: textColor))),
-                      IconButton(icon: const Icon(Icons.close, color: Colors.red), onPressed: () => setState(() => selectedFile = null)),
+                      Expanded(
+                          child: Text(selectedFile!.name,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(color: textColor))),
+                      IconButton(
+                          icon: const Icon(Icons.close, color: Colors.red),
+                          onPressed: () =>
+                              setState(() => selectedFile = null)),
                     ],
                   ),
                 ),
@@ -613,15 +830,31 @@ class _NewChatScreenState extends State<NewChatScreen> {
                         controller: messageController,
                         style: TextStyle(color: textColor),
                         decoration: InputDecoration(
-                          hintText: "Ask anything...",
-                          hintStyle: TextStyle(color: subTextColor),
+                          hintText: _isListening
+                              ? "Listening..."
+                              : "Ask anything...",
+                          hintStyle: TextStyle(
+                            color: _isListening
+                                ? Colors.red
+                                : subTextColor,
+                          ),
                           border: InputBorder.none,
                         ),
                         onSubmitted: (_) => _sendMessage(),
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.send, color: Color(0xFF4F7EA6)),
+                      icon: Icon(
+                        _isListening ? Icons.mic : Icons.mic_none,
+                        color: _isListening
+                            ? Colors.red
+                            : const Color(0xFF4F7EA6),
+                      ),
+                      onPressed: _startListening,
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.send,
+                          color: Color(0xFF4F7EA6)),
                       onPressed: _sendMessage,
                     ),
                   ],
