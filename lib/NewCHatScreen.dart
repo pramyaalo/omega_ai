@@ -9,8 +9,11 @@ import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:speech_to_text/speech_to_text.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 import 'SettingsScreen.dart';
-import 'ChatBubble.dart'; // ✅ ChatBubble import
+import 'ChatBubble.dart';
 
 class NewChatScreen extends StatefulWidget {
   final String? initialMessage;
@@ -22,7 +25,7 @@ class NewChatScreen extends StatefulWidget {
 
 class _NewChatScreenState extends State<NewChatScreen> {
   final TextEditingController messageController = TextEditingController();
-  final ScrollController _scrollController = ScrollController(); // ✅ Auto scroll
+  final ScrollController _scrollController = ScrollController();
   WebSocketChannel? channel;
   final ImagePicker _picker = ImagePicker();
   XFile? selectedImage;
@@ -48,7 +51,6 @@ class _NewChatScreenState extends State<NewChatScreen> {
     });
   }
 
-  // ── AUTO SCROLL ──────────────────────────────
   void _scrollToBottom() {
     Future.delayed(const Duration(milliseconds: 100), () {
       if (_scrollController.hasClients) {
@@ -61,6 +63,12 @@ class _NewChatScreenState extends State<NewChatScreen> {
     });
   }
 
+  Future<String> _getSessionKey() async {
+    final user = FirebaseAuth.instance.currentUser;
+    final key = user?.uid ?? 'guest';
+    return 'sessions_$key';
+  }
+
   Future<void> _initSpeech() async {
     await _speech.initialize();
     setState(() {});
@@ -69,17 +77,14 @@ class _NewChatScreenState extends State<NewChatScreen> {
   Future<void> _startListening() async {
     if (!_isListening) {
       bool available = await _speech.initialize(
-        onStatus: (status) {
-          if (status == 'done' || status == 'notListening') {
+        onStatus: (s) {
+          if (s == 'done' || s == 'notListening') {
             setState(() => _isListening = false);
-            if (messageController.text.trim().isNotEmpty) {
-              _sendMessage();
-            }
+            if (messageController.text.trim().isNotEmpty) _sendMessage();
           }
         },
         onError: (error) => setState(() => _isListening = false),
       );
-
       if (available) {
         setState(() => _isListening = true);
         await _speech.listen(
@@ -89,9 +94,7 @@ class _NewChatScreenState extends State<NewChatScreen> {
               setState(() => _isListening = false);
               _speech.stop();
               Future.delayed(const Duration(milliseconds: 300), () {
-                if (messageController.text.trim().isNotEmpty) {
-                  _sendMessage();
-                }
+                if (messageController.text.trim().isNotEmpty) _sendMessage();
               });
             }
           },
@@ -103,9 +106,7 @@ class _NewChatScreenState extends State<NewChatScreen> {
       setState(() => _isListening = false);
       await _speech.stop();
       if (messageController.text.trim().isNotEmpty) {
-        Future.delayed(const Duration(milliseconds: 300), () {
-          _sendMessage();
-        });
+        Future.delayed(const Duration(milliseconds: 300), () => _sendMessage());
       }
     }
   }
@@ -114,17 +115,28 @@ class _NewChatScreenState extends State<NewChatScreen> {
 
   Future<void> _loadSessions() async {
     final prefs = await SharedPreferences.getInstance();
-    final saved = prefs.getString('sessions');
-    if (saved != null) {
-      final List decoded = jsonDecode(saved);
+    final sessionKey = await _getSessionKey();
+    final oldSaved = prefs.getString('sessions');
+    final newSaved = prefs.getString(sessionKey);
+
+    if (newSaved != null) {
+      final List decoded = jsonDecode(newSaved);
       setState(() => sessions = decoded.cast<Map<String, dynamic>>());
+    } else if (oldSaved != null) {
+      final List decoded = jsonDecode(oldSaved);
+      setState(() => sessions = decoded.cast<Map<String, dynamic>>());
+      await prefs.setString(sessionKey, oldSaved);
+      await prefs.remove('sessions');
+    } else {
+      setState(() => sessions = []);
     }
     _startNewSession();
   }
 
   Future<void> _saveSessions() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('sessions', jsonEncode(sessions));
+    final sessionKey = await _getSessionKey();
+    await prefs.setString(sessionKey, jsonEncode(sessions));
   }
 
   void _startNewSession() {
@@ -168,8 +180,7 @@ class _NewChatScreenState extends State<NewChatScreen> {
     final toSave = messages
         .map((m) => {"text": m["text"] ?? "", "isMe": m["isMe"]})
         .toList();
-    final existingIndex =
-    sessions.indexWhere((s) => s['id'] == currentSessionId);
+    final existingIndex = sessions.indexWhere((s) => s['id'] == currentSessionId);
     if (existingIndex >= 0) {
       sessions[existingIndex] = {
         'id': currentSessionId,
@@ -177,16 +188,18 @@ class _NewChatScreenState extends State<NewChatScreen> {
         'messages': toSave
       };
     } else {
-      sessions.insert(
-          0, {'id': currentSessionId, 'title': title, 'messages': toSave});
+      sessions.insert(0, {
+        'id': currentSessionId,
+        'title': title,
+        'messages': toSave
+      });
     }
     _saveSessions();
   }
 
   void _connectWebSocket() {
     try { channel?.sink.close(status.goingAway); } catch (_) {}
-    channel = WebSocketChannel.connect(
-        Uri.parse('ws://192.168.1.4:8000/ws/chat/'));
+    channel = WebSocketChannel.connect(Uri.parse('ws://192.168.1.4:8000/ws/chat/'));
     channel!.stream.listen(
           (data) {
         final decoded = jsonDecode(data);
@@ -215,7 +228,7 @@ class _NewChatScreenState extends State<NewChatScreen> {
             _saveCurrentSession();
           }
         });
-        _scrollToBottom(); // ✅ Auto scroll on new message
+        _scrollToBottom();
       },
       onError: (error) {
         Future.delayed(const Duration(seconds: 2), _connectWebSocket);
@@ -236,7 +249,7 @@ class _NewChatScreenState extends State<NewChatScreen> {
       setState(() => messages.add({"text": text, "isMe": true}));
       channel!.sink.add(jsonEncode({"message": text}));
       messageController.clear();
-      _scrollToBottom(); // ✅ Auto scroll
+      _scrollToBottom();
     }
   }
 
@@ -263,8 +276,7 @@ class _NewChatScreenState extends State<NewChatScreen> {
   }
 
   Future<void> _sendFile(String caption) async {
-    final bytes =
-        selectedFile!.bytes ?? await File(selectedFile!.path!).readAsBytes();
+    final bytes = selectedFile!.bytes ?? await File(selectedFile!.path!).readAsBytes();
     final base64File = base64Encode(bytes);
     final name = selectedFile!.name;
     setState(() {
@@ -282,8 +294,7 @@ class _NewChatScreenState extends State<NewChatScreen> {
 
   Future<void> _pickImage(ImageSource source) async {
     final image = await _picker.pickImage(source: source);
-    if (image != null)
-      setState(() { selectedImage = image; selectedFile = null; });
+    if (image != null) setState(() { selectedImage = image; selectedFile = null; });
   }
 
   Future<void> _pickFile() async {
@@ -291,6 +302,124 @@ class _NewChatScreenState extends State<NewChatScreen> {
     if (result != null && result.files.isNotEmpty) {
       setState(() { selectedFile = result.files.first; selectedImage = null; });
     }
+  }
+
+  // ✅ PDF EXPORT
+  Future<void> _exportChatAsPDF() async {
+    if (messages.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("No messages to export!")),
+      );
+      return;
+    }
+
+    final pdf = pw.Document();
+    final user = FirebaseAuth.instance.currentUser;
+    final userName = user?.displayName ?? user?.email?.split('@')[0] ?? "User";
+    final now = DateTime.now();
+
+    pdf.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(32),
+        build: (pw.Context ctx) {
+          return [
+            // Header
+            pw.Container(
+              padding: const pw.EdgeInsets.all(16),
+              decoration: pw.BoxDecoration(
+                color: PdfColor.fromHex('#4F7EA6'),
+                borderRadius: pw.BorderRadius.circular(8),
+              ),
+              child: pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Text('Ω OMEGA AI',
+                      style: pw.TextStyle(
+                          color: PdfColors.white,
+                          fontSize: 20,
+                          fontWeight: pw.FontWeight.bold)),
+                  pw.Text('Chat Export',
+                      style: pw.TextStyle(
+                          color: PdfColors.white, fontSize: 12)),
+                ],
+              ),
+            ),
+            pw.SizedBox(height: 8),
+            pw.Text(
+              'Exported on: ${now.day}/${now.month}/${now.year}  |  User: $userName',
+              style: pw.TextStyle(fontSize: 10, color: PdfColors.grey600),
+            ),
+            pw.SizedBox(height: 12),
+            pw.Divider(),
+            pw.SizedBox(height: 8),
+
+            // Messages
+            ...messages
+                .where((m) => m['typing'] != true && (m['text'] ?? '').toString().isNotEmpty)
+                .map((msg) {
+              final isMe = msg['isMe'] as bool;
+              final text = msg['text'] ?? '';
+              return pw.Container(
+                margin: const pw.EdgeInsets.only(bottom: 14),
+                child: pw.Column(
+                  crossAxisAlignment: isMe
+                      ? pw.CrossAxisAlignment.end
+                      : pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text(
+                      isMe ? userName : 'Omega AI 🤖',
+                      style: pw.TextStyle(
+                        fontSize: 10,
+                        fontWeight: pw.FontWeight.bold,
+                        color: isMe
+                            ? PdfColor.fromHex('#4F7EA6')
+                            : PdfColors.grey700,
+                      ),
+                    ),
+                    pw.SizedBox(height: 4),
+                    pw.Container(
+                      padding: const pw.EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
+                      decoration: pw.BoxDecoration(
+                        color: isMe
+                            ? PdfColor.fromHex('#4F7EA6')
+                            : PdfColor.fromHex('#F0F4F8'),
+                        borderRadius: pw.BorderRadius.circular(12),
+                      ),
+                      child: pw.Text(
+                        text,
+                        style: pw.TextStyle(
+                          fontSize: 11,
+                          color: isMe ? PdfColors.white : PdfColors.black,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+
+            // Footer
+            pw.SizedBox(height: 16),
+            pw.Divider(),
+            pw.SizedBox(height: 8),
+            pw.Center(
+              child: pw.Text(
+                'Generated by Omega AI • ${now.day}/${now.month}/${now.year}',
+                style: pw.TextStyle(
+                    fontSize: 9, color: PdfColors.grey500),
+              ),
+            ),
+          ];
+        },
+      ),
+    );
+
+    await Printing.layoutPdf(
+      onLayout: (PdfPageFormat format) async => pdf.save(),
+      name: 'omega_chat_${now.millisecondsSinceEpoch}.pdf',
+    );
   }
 
   void _showAttachmentSheet() {
@@ -417,8 +546,7 @@ class _NewChatScreenState extends State<NewChatScreen> {
     );
   }
 
-  Widget _attachOption(
-      IconData icon, String label, Color color, VoidCallback onTap) {
+  Widget _attachOption(IconData icon, String label, Color color, VoidCallback onTap) {
     return Expanded(
       child: GestureDetector(
         onTap: onTap,
@@ -444,8 +572,7 @@ class _NewChatScreenState extends State<NewChatScreen> {
     );
   }
 
-  Widget _quickAction(
-      IconData icon, String label, Color color, VoidCallback onTap) {
+  Widget _quickAction(IconData icon, String label, Color color, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -481,25 +608,21 @@ class _NewChatScreenState extends State<NewChatScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor =
-    isDark ? const Color(0xFF121212) : const Color(0xFFAACBE5);
+    final bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFAACBE5);
     final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
     final textColor = isDark ? Colors.white : Colors.black;
-    final drawerBg =
-    isDark ? const Color(0xFF1A1A1A) : const Color(0xFFEAF3FB);
+    final drawerBg = isDark ? const Color(0xFF1A1A1A) : const Color(0xFFEAF3FB);
     final subTextColor = isDark ? Colors.white38 : Colors.black54;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle(
-        statusBarColor: bgColor, // ✅ App color same
-        statusBarIconBrightness:
-        isDark ? Brightness.light : Brightness.dark, // ✅ Icons visible
+        statusBarColor: bgColor,
+        statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
         systemNavigationBarColor: bgColor,
       ),
       child: Scaffold(
         backgroundColor: bgColor,
         extendBodyBehindAppBar: true,
-        // ── DRAWER ───────────────────────────────
         drawer: Drawer(
           backgroundColor: drawerBg,
           child: SafeArea(
@@ -561,8 +684,7 @@ class _NewChatScreenState extends State<NewChatScreen> {
                     itemCount: sessions.length,
                     itemBuilder: (context, index) {
                       final session = sessions[index];
-                      final isActive =
-                          session['id'] == currentSessionId;
+                      final isActive = session['id'] == currentSessionId;
                       return Container(
                         margin: const EdgeInsets.only(bottom: 4),
                         decoration: BoxDecoration(
@@ -572,10 +694,8 @@ class _NewChatScreenState extends State<NewChatScreen> {
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: ListTile(
-                          leading: const Icon(
-                              Icons.chat_bubble_outline,
-                              color: Color(0xFF4F7EA6),
-                              size: 20),
+                          leading: const Icon(Icons.chat_bubble_outline,
+                              color: Color(0xFF4F7EA6), size: 20),
                           title: Text(
                             session['title'] ?? 'Chat ${index + 1}',
                             maxLines: 1,
@@ -591,8 +711,7 @@ class _NewChatScreenState extends State<NewChatScreen> {
                           trailing: IconButton(
                             icon: const Icon(Icons.delete_outline,
                                 color: Colors.red, size: 18),
-                            onPressed: () =>
-                                _deleteSession(session['id']),
+                            onPressed: () => _deleteSession(session['id']),
                           ),
                           onTap: () => _loadSession(session),
                         ),
@@ -602,30 +721,25 @@ class _NewChatScreenState extends State<NewChatScreen> {
                 ),
                 const Divider(height: 1),
                 ListTile(
-                  leading:
-                  Icon(Icons.settings_outlined, color: subTextColor),
+                  leading: Icon(Icons.settings_outlined, color: subTextColor),
                   title: Text("Settings",
                       style: TextStyle(
                           fontWeight: FontWeight.w500, color: textColor)),
                   trailing: Icon(Icons.chevron_right, color: subTextColor),
                   onTap: () {
                     Navigator.pop(context);
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => const SettingsScreen()));
+                    Navigator.push(context,
+                        MaterialPageRoute(builder: (_) => const SettingsScreen()));
                   },
                 ),
                 Builder(
                   builder: (context) {
                     final user = FirebaseAuth.instance.currentUser;
                     final displayName = user?.displayName ??
-                        user?.email?.split('@')[0] ??
-                        "User";
+                        user?.email?.split('@')[0] ?? "User";
                     final email = user?.email ?? "guest@omega.ai";
                     final firstLetter = displayName.isNotEmpty
-                        ? displayName[0].toUpperCase()
-                        : "U";
+                        ? displayName[0].toUpperCase() : "U";
                     return Container(
                       margin: const EdgeInsets.fromLTRB(8, 0, 8, 8),
                       decoration: BoxDecoration(
@@ -707,10 +821,22 @@ class _NewChatScreenState extends State<NewChatScreen> {
                                 color: textColor)),
                       ],
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.add, color: Color(0xFF4F7EA6)),
-                      onPressed: _startNewSession,
-                      tooltip: "New Chat",
+                    Row(
+                      children: [
+                        // ✅ PDF Export — messages irukum pothu matum show
+                        if (messages.isNotEmpty)
+                          IconButton(
+                            icon: const Icon(Icons.picture_as_pdf,
+                                color: Color(0xFF4F7EA6)),
+                            onPressed: _exportChatAsPDF,
+                            tooltip: "Export PDF",
+                          ),
+                        IconButton(
+                          icon: const Icon(Icons.add, color: Color(0xFF4F7EA6)),
+                          onPressed: _startNewSession,
+                          tooltip: "New Chat",
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -724,7 +850,6 @@ class _NewChatScreenState extends State<NewChatScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        // ✅ Empty state illustration
                         Container(
                           width: 80,
                           height: 80,
@@ -754,15 +879,12 @@ class _NewChatScreenState extends State<NewChatScreen> {
                     ),
                   )
                       : ListView.builder(
-                    controller: _scrollController, // ✅ Scroll controller
+                    controller: _scrollController,
                     itemCount: messages.length,
                     itemBuilder: (context, index) {
                       final msg = messages[index];
                       final isNew = index == messages.length - 1;
-                      return ChatBubble( // ✅ ChatBubble use pannrom
-                        message: msg,
-                        isNew: isNew,
-                      );
+                      return ChatBubble(message: msg, isNew: isNew);
                     },
                   ),
                 ),
@@ -842,9 +964,7 @@ class _NewChatScreenState extends State<NewChatScreen> {
                                 ? "Listening..."
                                 : "Ask anything...",
                             hintStyle: TextStyle(
-                              color: _isListening
-                                  ? Colors.red
-                                  : subTextColor,
+                              color: _isListening ? Colors.red : subTextColor,
                             ),
                             border: InputBorder.none,
                           ),
@@ -861,8 +981,7 @@ class _NewChatScreenState extends State<NewChatScreen> {
                         onPressed: _startListening,
                       ),
                       IconButton(
-                        icon: const Icon(Icons.send,
-                            color: Color(0xFF4F7EA6)),
+                        icon: const Icon(Icons.send, color: Color(0xFF4F7EA6)),
                         onPressed: _sendMessage,
                       ),
                     ],

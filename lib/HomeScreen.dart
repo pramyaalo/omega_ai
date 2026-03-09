@@ -49,7 +49,6 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Scaffold(
         key: _scaffoldKey,
         backgroundColor: bgColor,
-        drawer: _buildDrawer(context, isDark, cardColor, textColor, subTextColor),
         body: SafeArea(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -77,10 +76,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             )),
                       ],
                     ),
-                    IconButton(
-                      icon: Icon(Icons.menu, size: 28, color: textColor),
-                      onPressed: () => _scaffoldKey.currentState?.openDrawer(),
-                    ),
+
                   ],
                 ),
 
@@ -212,172 +208,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // ── DRAWER ───────────────────────────────────
-  Drawer _buildDrawer(BuildContext context, bool isDark, Color cardColor,
-      Color textColor, Color subTextColor) {
-    final user = FirebaseAuth.instance.currentUser;
-    final displayName = isGuest
-        ? "Guest User"
-        : (user?.displayName ?? user?.email?.split('@')[0] ?? "User");
-    final email = isGuest ? "guest@omega.ai" : (user?.email ?? "");
-    final firstLetter = displayName.isNotEmpty
-        ? displayName[0].toUpperCase()
-        : "G";
-    final drawerBg = isDark ? const Color(0xFF1A1A1A) : const Color(0xFFEAF3FB);
 
-    return Drawer(
-      backgroundColor: drawerBg,
-      child: SafeArea(
-        child: Column(
-          children: [
-
-            // Header
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
-              color: const Color(0xFF4F7EA6),
-              child: const Text("Ω OMEGA AI",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1,
-                  )),
-            ),
-
-            // New Chat Button
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  icon: const Icon(Icons.add, size: 18),
-                  label: const Text("New Chat"),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4F7EA6),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  onPressed: () {
-                    Navigator.pop(context);
-                    Navigator.push(context,
-                        MaterialPageRoute(
-                            builder: (_) => const NewChatScreen()));
-                  },
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            // History Title
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text("Recent Chats",
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
-                      color: subTextColor,
-                      letterSpacing: 0.5,
-                    )),
-              ),
-            ),
-
-            const SizedBox(height: 8),
-
-            // History List
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                children: [
-                  _HistoryTile(
-                    title: "Landing page ideas",
-                    subtitle: "UI layout",
-                    icon: Icons.lightbulb_outline,
-                    textColor: textColor,
-                  ),
-                  _HistoryTile(
-                    title: "Trading strategies",
-                    subtitle: "Market analysis",
-                    icon: Icons.trending_up,
-                    textColor: textColor,
-                  ),
-                ],
-              ),
-            ),
-
-            const Divider(height: 1),
-
-            // Settings
-            ListTile(
-              leading: Icon(Icons.settings_outlined, color: subTextColor),
-              title: Text("Settings",
-                  style: TextStyle(
-                      fontWeight: FontWeight.w500, color: textColor)),
-              trailing: Icon(Icons.chevron_right, color: subTextColor),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(context,
-                    MaterialPageRoute(
-                        builder: (_) => const SettingsScreen()));
-              },
-            ),
-
-            // Profile Card
-            Container(
-              margin: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-              decoration: BoxDecoration(
-                color: cardColor,
-                borderRadius: BorderRadius.circular(14),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 6,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: ListTile(
-                leading: CircleAvatar(
-                  radius: 20,
-                  backgroundColor: const Color(0xFF4F7EA6),
-                  child: Text(firstLetter,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      )),
-                ),
-                title: Text(displayName,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                      color: textColor,
-                    ),
-                    overflow: TextOverflow.ellipsis),
-                subtitle: Text(email,
-                    style:
-                    const TextStyle(fontSize: 11, color: Colors.grey),
-                    overflow: TextOverflow.ellipsis),
-                trailing: Icon(Icons.logout,
-                    color: Colors.red, size: 20),
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.push(context,
-                      MaterialPageRoute(
-                          builder: (_) => const SettingsScreen()));
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 // ── FEATURE CARD ─────────────────────────────

@@ -1,21 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // ✅ Add
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'HomeScreen.dart';
+import 'LoginScreen.dart'; // ✅ Add
 import 'SignupScreen.dart';
 
-// ✅ Background message handler
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
-  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    statusBarColor: Colors.transparent,
-    statusBarIconBrightness: Brightness.dark, // dark icons = visible
-    statusBarBrightness: Brightness.light,
-  ));
   print("Background message: ${message.notification?.title}");
 }
 
@@ -23,21 +19,17 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
 
-  // ✅ Background handler
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-  // ✅ Request permission
   await FirebaseMessaging.instance.requestPermission(
     alert: true,
     badge: true,
     sound: true,
   );
 
-  // ✅ FCM Token
   final token = await FirebaseMessaging.instance.getToken();
   print("FCM Token: $token");
 
-  // ✅ Foreground message — sim++++++++++++++++++++++++++++++++++++++++++++++ple print only
   FirebaseMessaging.onMessage.listen((RemoteMessage message) {
     print("Foreground message: ${message.notification?.title}");
   });
@@ -47,8 +39,6 @@ Future<void> main() async {
 
   runApp(OmegaApp(isDark: isDark));
 }
-
-// ... rest of OmegaApp same ah irukum
 
 class OmegaApp extends StatefulWidget {
   final bool isDark;
@@ -78,12 +68,10 @@ class _OmegaAppState extends State<OmegaApp> {
 
   @override
   Widget build(BuildContext context) {
-
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
 
-      // ── LIGHT THEME ──────────────────────────
       theme: ThemeData(
         brightness: Brightness.light,
         scaffoldBackgroundColor: const Color(0xFFAACBE5),
@@ -101,7 +89,6 @@ class _OmegaAppState extends State<OmegaApp> {
         ),
       ),
 
-      // ── DARK THEME ───────────────────────────
       darkTheme: ThemeData(
         brightness: Brightness.dark,
         scaffoldBackgroundColor: const Color(0xFF121212),
@@ -151,142 +138,197 @@ class OmegaHome extends StatelessWidget {
       value: SystemUiOverlayStyle(
         statusBarColor: bgColor,
         statusBarIconBrightness:
-        isDark ? Brightness.light : Brightness.dark, // ✅ Icons visible
+        isDark ? Brightness.light : Brightness.dark,
         systemNavigationBarColor: bgColor,
       ),
-      child: Scaffold(
-        backgroundColor: bgColor,
-        body: Container(
-          width: double.infinity,
-          height: double.infinity,
-          color: bgColor,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
 
-              // ── LOGO ──────────────────────────────
-              Padding(
-                padding: const EdgeInsets.only(top: 40, left: 20),
-                child: Row(
-                  children: [
-                    Text("Ω",
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: textColor,
-                        )),
-                    const SizedBox(width: 6),
-                    Text("OMEGA AI",
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600,
-                          color: textColor,
-                        )),
-                  ],
+      // ✅ Firebase auth state check
+      child: StreamBuilder<User?>(
+        stream: FirebaseAuth.instance.authStateChanges(),
+        builder: (context, snapshot) {
+
+          // Loading
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Scaffold(
+              backgroundColor: bgColor,
+              body: Center(
+                child: CircularProgressIndicator(
+                  color: const Color(0xFF4F7EA6),
                 ),
               ),
+            );
+          }
 
-              // ── CENTER CONTENT ────────────────────
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text("Think smarter.",
-                          style: TextStyle(
-                            fontSize: 25,
-                            color: textColor,
-                            fontWeight: FontWeight.w900,
-                          )),
-                      const SizedBox(height: 4),
-                      Text("Work faster.",
-                          style: TextStyle(
-                            fontSize: 25,
-                            color: textColor,
-                            fontWeight: FontWeight.w900,
-                          )),
-                      const SizedBox(height: 16),
-                      Text(
-                        "Collaborate, analyze and build faster - all in one intelligent AI workspace.",
-                        style: TextStyle(fontSize: 14, color: subTextColor),
-                      ),
+          // ✅ Already logged in — direct HomeScreen
+          if (snapshot.hasData && snapshot.data != null) {
+            return HomeScreen(isGuest: false);
+          }
 
-                      SizedBox(
-                          height: MediaQuery.of(context).size.height * 0.06),
+          // Not logged in — show welcome screen
+          return Scaffold(
+            backgroundColor: bgColor,
+            body: Container(
+              width: double.infinity,
+              height: double.infinity,
+              color: bgColor,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
 
-                      // Get Started
-                      SizedBox(
-                        width: double.infinity,
-                        height: 50,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF3F6F9C),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          onPressed: () => Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                                builder: (_) =>
-                                const HomeScreen(isGuest: true)),
-                          ),
-                          child: const Text("Get started",
+                  // ── LOGO ──────────────────────────────
+                  Padding(
+                    padding: const EdgeInsets.only(top: 40, left: 20),
+                    child: Row(
+                      children: [
+                        Text("Ω",
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              color: textColor,
+                            )),
+                        const SizedBox(width: 6),
+                        Text("OMEGA AI",
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w600,
+                              color: textColor,
+                            )),
+                      ],
+                    ),
+                  ),
+
+                  // ── CENTER CONTENT ────────────────────
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text("Think smarter.",
                               style: TextStyle(
-                                  fontSize: 16, color: Colors.white)),
-                        ),
-                      ),
-
-                      SizedBox(
-                          height: MediaQuery.of(context).size.height * 0.03),
-
-                      // Sign Up
-                      SizedBox(
-                        width: double.infinity,
-                        height: 50,
-                        child: TextButton(
-                          onPressed: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (_) => const SignupScreen()),
-                          ),
-                          style: TextButton.styleFrom(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              side: const BorderSide(
-                                color: Color(0xFF3F6F9C),
-                                width: 1.5,
-                              ),
-                            ),
-                          ),
-                          child: const Text("Sign Up",
-                              style: TextStyle(
-                                fontSize: 15,
-                                color: Color(0xFF3F6F9C),
+                                fontSize: 25,
+                                color: textColor,
+                                fontWeight: FontWeight.w900,
                               )),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+                          const SizedBox(height: 4),
+                          Text("Work faster.",
+                              style: TextStyle(
+                                fontSize: 25,
+                                color: textColor,
+                                fontWeight: FontWeight.w900,
+                              )),
+                          const SizedBox(height: 16),
+                          Text(
+                            "Collaborate, analyze and build faster - all in one intelligent AI workspace.",
+                            style:
+                            TextStyle(fontSize: 14, color: subTextColor),
+                          ),
 
-              // ── FOOTER ───────────────────────────
-              Padding(
-                padding: const EdgeInsets.only(bottom: 20),
-                child: Center(
-                  child: Text(
-                    "No credit card required. Privacy Policy",
-                    style: TextStyle(fontSize: 12, color: subTextColor),
+                          SizedBox(
+                              height:
+                              MediaQuery.of(context).size.height * 0.06),
+
+                          // ✅ Get Started — Guest mode
+                          SizedBox(
+                            width: double.infinity,
+                            height: 50,
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF3F6F9C),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              onPressed: () => Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) =>
+                                    const HomeScreen(isGuest: true)),
+                              ),
+                              child: const Text("Get started",
+                                  style: TextStyle(
+                                      fontSize: 16, color: Colors.white)),
+                            ),
+                          ),
+
+                          SizedBox(
+                              height:
+                              MediaQuery.of(context).size.height * 0.02),
+
+                          // ✅ Login button add pannuvom
+                          SizedBox(
+                            width: double.infinity,
+                            height: 50,
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF4F7EA6),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              onPressed: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) => const LoginScreen()),
+                              ),
+                              child: const Text("Login",
+                                  style: TextStyle(
+                                      fontSize: 16, color: Colors.white)),
+                            ),
+                          ),
+
+                          SizedBox(
+                              height:
+                              MediaQuery.of(context).size.height * 0.02),
+
+                          // Sign Up
+                          SizedBox(
+                            width: double.infinity,
+                            height: 50,
+                            child: TextButton(
+                              onPressed: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) => const SignupScreen()),
+                              ),
+                              style: TextButton.styleFrom(
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  side: const BorderSide(
+                                    color: Color(0xFF3F6F9C),
+                                    width: 1.5,
+                                  ),
+                                ),
+                              ),
+                              child: const Text("Sign Up",
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    color: Color(0xFF3F6F9C),
+                                  )),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                ),
+
+                  // ── FOOTER ───────────────────────────
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 20),
+                    child: Center(
+                      child: Text(
+                        "No credit card required. Privacy Policy",
+                        style: TextStyle(fontSize: 12, color: subTextColor),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
     );
   }
