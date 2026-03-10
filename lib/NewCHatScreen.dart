@@ -12,6 +12,7 @@ import 'package:speech_to_text/speech_to_text.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'package:share_plus/share_plus.dart';
 import 'SettingsScreen.dart';
 import 'ChatBubble.dart';
 
@@ -304,8 +305,44 @@ class _NewChatScreenState extends State<NewChatScreen> {
     }
   }
 
-  // ✅ PDF EXPORT
-  Future<void> _exportChatAsPDF() async {
+  // ✅ SHARE CHAT — WhatsApp, Gmail, etc
+  void _shareChat() {
+    if (messages.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("No messages to share!")),
+      );
+      return;
+    }
+
+    final user = FirebaseAuth.instance.currentUser;
+    final userName = user?.displayName ?? user?.email?.split('@')[0] ?? "User";
+    final now = DateTime.now();
+
+    final buffer = StringBuffer();
+    buffer.writeln("🤖 *OMEGA AI Chat*");
+    buffer.writeln("📅 ${now.day}/${now.month}/${now.year}");
+    buffer.writeln("─────────────────────");
+
+    for (final msg in messages) {
+      if (msg['typing'] == true) continue;
+      final text = msg['text']?.toString() ?? '';
+      if (text.isEmpty) continue;
+      final isMe = msg['isMe'] as bool;
+      buffer.writeln(isMe ? "\n👤 *$userName:*" : "\n🤖 *Omega AI:*");
+      buffer.writeln(text);
+    }
+
+    buffer.writeln("\n─────────────────────");
+    buffer.writeln("Shared from Omega AI App");
+
+    Share.share(
+      buffer.toString(),
+      subject: "Omega AI Chat - ${now.day}/${now.month}/${now.year}",
+    );
+  }
+
+  // ✅ PDF EXPORT + SHARE BOTTOM SHEET
+  void _showExportSheet() {
     if (messages.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("No messages to export!")),
@@ -313,113 +350,241 @@ class _NewChatScreenState extends State<NewChatScreen> {
       return;
     }
 
-    final pdf = pw.Document();
-    final user = FirebaseAuth.instance.currentUser;
-    final userName = user?.displayName ?? user?.email?.split('@')[0] ?? "User";
-    final now = DateTime.now();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+        final textColor = isDark ? Colors.white : Colors.black;
 
-    pdf.addPage(
-      pw.MultiPage(
-        pageFormat: PdfPageFormat.a4,
-        margin: const pw.EdgeInsets.all(32),
-        build: (pw.Context ctx) {
-          return [
-            // Header
-            pw.Container(
-              padding: const pw.EdgeInsets.all(16),
-              decoration: pw.BoxDecoration(
-                color: PdfColor.fromHex('#4F7EA6'),
-                borderRadius: pw.BorderRadius.circular(8),
+        return Container(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+          decoration: BoxDecoration(
+            color: cardColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40, height: 4,
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                    color: Colors.grey.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(2)),
               ),
-              child: pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              Text("Export & Share",
+                  style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: textColor)),
+              const SizedBox(height: 20),
+              Row(
                 children: [
-                  pw.Text('Ω OMEGA AI',
-                      style: pw.TextStyle(
-                          color: PdfColors.white,
-                          fontSize: 20,
-                          fontWeight: pw.FontWeight.bold)),
-                  pw.Text('Chat Export',
-                      style: pw.TextStyle(
-                          color: PdfColors.white, fontSize: 12)),
-                ],
-              ),
-            ),
-            pw.SizedBox(height: 8),
-            pw.Text(
-              'Exported on: ${now.day}/${now.month}/${now.year}  |  User: $userName',
-              style: pw.TextStyle(fontSize: 10, color: PdfColors.grey600),
-            ),
-            pw.SizedBox(height: 12),
-            pw.Divider(),
-            pw.SizedBox(height: 8),
-
-            // Messages
-            ...messages
-                .where((m) => m['typing'] != true && (m['text'] ?? '').toString().isNotEmpty)
-                .map((msg) {
-              final isMe = msg['isMe'] as bool;
-              final text = msg['text'] ?? '';
-              return pw.Container(
-                margin: const pw.EdgeInsets.only(bottom: 14),
-                child: pw.Column(
-                  crossAxisAlignment: isMe
-                      ? pw.CrossAxisAlignment.end
-                      : pw.CrossAxisAlignment.start,
-                  children: [
-                    pw.Text(
-                      isMe ? userName : 'Omega AI 🤖',
-                      style: pw.TextStyle(
-                        fontSize: 10,
-                        fontWeight: pw.FontWeight.bold,
-                        color: isMe
-                            ? PdfColor.fromHex('#4F7EA6')
-                            : PdfColors.grey700,
-                      ),
-                    ),
-                    pw.SizedBox(height: 4),
-                    pw.Container(
-                      padding: const pw.EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 8),
-                      decoration: pw.BoxDecoration(
-                        color: isMe
-                            ? PdfColor.fromHex('#4F7EA6')
-                            : PdfColor.fromHex('#F0F4F8'),
-                        borderRadius: pw.BorderRadius.circular(12),
-                      ),
-                      child: pw.Text(
-                        text,
-                        style: pw.TextStyle(
-                          fontSize: 11,
-                          color: isMe ? PdfColors.white : PdfColors.black,
+                  // ✅ PDF Export
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        Navigator.pop(context);
+                        _exportChatAsPDF();
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 20),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF4F7EA6).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                              color: const Color(0xFF4F7EA6).withOpacity(0.3)),
+                        ),
+                        child: const Column(
+                          children: [
+                            Icon(Icons.picture_as_pdf,
+                                color: Color(0xFF4F7EA6), size: 36),
+                            SizedBox(height: 8),
+                            Text("Export PDF",
+                                style: TextStyle(
+                                    color: Color(0xFF4F7EA6),
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14)),
+                            SizedBox(height: 4),
+                            Text("Save as PDF file",
+                                style: TextStyle(
+                                    color: Colors.grey, fontSize: 11)),
+                          ],
                         ),
                       ),
                     ),
-                  ],
-                ),
-              );
-            }).toList(),
-
-            // Footer
-            pw.SizedBox(height: 16),
-            pw.Divider(),
-            pw.SizedBox(height: 8),
-            pw.Center(
-              child: pw.Text(
-                'Generated by Omega AI • ${now.day}/${now.month}/${now.year}',
-                style: pw.TextStyle(
-                    fontSize: 9, color: PdfColors.grey500),
+                  ),
+                  const SizedBox(width: 12),
+                  // ✅ Share Text
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        Navigator.pop(context);
+                        _shareChat();
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 20),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                              color: Colors.green.withOpacity(0.3)),
+                        ),
+                        child: const Column(
+                          children: [
+                            Icon(Icons.share_rounded,
+                                color: Colors.green, size: 36),
+                            SizedBox(height: 8),
+                            Text("Share Chat",
+                                style: TextStyle(
+                                    color: Colors.green,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14)),
+                            SizedBox(height: 4),
+                            Text("WhatsApp, Gmail...",
+                                style: TextStyle(
+                                    color: Colors.grey, fontSize: 11)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ];
-        },
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // ✅ PDF EXPORT
+  Future<void> _exportChatAsPDF() async {
+    if (messages.isEmpty) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(
+        child: CircularProgressIndicator(color: Color(0xFF4F7EA6)),
       ),
     );
 
-    await Printing.layoutPdf(
-      onLayout: (PdfPageFormat format) async => pdf.save(),
-      name: 'omega_chat_${now.millisecondsSinceEpoch}.pdf',
-    );
+    try {
+      final pdf = pw.Document();
+      final user = FirebaseAuth.instance.currentUser;
+      final userName = user?.displayName ?? user?.email?.split('@')[0] ?? "User";
+      final now = DateTime.now();
+
+      pdf.addPage(
+        pw.MultiPage(
+          pageFormat: PdfPageFormat.a4,
+          margin: const pw.EdgeInsets.all(32),
+          build: (pw.Context ctx) {
+            return [
+              pw.Container(
+                padding: const pw.EdgeInsets.all(16),
+                decoration: pw.BoxDecoration(
+                  color: PdfColor.fromHex('#4F7EA6'),
+                  borderRadius: pw.BorderRadius.circular(8),
+                ),
+                child: pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  children: [
+                    pw.Text('Ω OMEGA AI',
+                        style: pw.TextStyle(
+                            color: PdfColors.white,
+                            fontSize: 20,
+                            fontWeight: pw.FontWeight.bold)),
+                    pw.Text('Chat Export',
+                        style: const pw.TextStyle(
+                            color: PdfColors.white, fontSize: 12)),
+                  ],
+                ),
+              ),
+              pw.SizedBox(height: 8),
+              pw.Text(
+                'Exported: ${now.day}/${now.month}/${now.year}  |  User: $userName',
+                style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey),
+              ),
+              pw.SizedBox(height: 12),
+              pw.Divider(),
+              pw.SizedBox(height: 8),
+              ...messages
+                  .where((m) =>
+              m['typing'] != true &&
+                  (m['text'] ?? '').toString().isNotEmpty)
+                  .map((msg) {
+                final isMe = msg['isMe'] as bool;
+                final text = msg['text'].toString();
+                return pw.Container(
+                  margin: const pw.EdgeInsets.only(bottom: 14),
+                  child: pw.Column(
+                    crossAxisAlignment: isMe
+                        ? pw.CrossAxisAlignment.end
+                        : pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text(
+                        isMe ? userName : 'Omega AI',
+                        style: pw.TextStyle(
+                          fontSize: 10,
+                          fontWeight: pw.FontWeight.bold,
+                          color: isMe
+                              ? PdfColor.fromHex('#4F7EA6')
+                              : PdfColors.grey700,
+                        ),
+                      ),
+                      pw.SizedBox(height: 4),
+                      pw.Container(
+                        padding: const pw.EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
+                        decoration: pw.BoxDecoration(
+                          color: isMe
+                              ? PdfColor.fromHex('#4F7EA6')
+                              : PdfColor.fromHex('#F0F4F8'),
+                          borderRadius: pw.BorderRadius.circular(12),
+                        ),
+                        child: pw.Text(
+                          text,
+                          style: pw.TextStyle(
+                            fontSize: 11,
+                            color: isMe ? PdfColors.white : PdfColors.black,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+              pw.SizedBox(height: 16),
+              pw.Divider(),
+              pw.SizedBox(height: 8),
+              pw.Center(
+                child: pw.Text(
+                  'Generated by Omega AI • ${now.day}/${now.month}/${now.year}',
+                  style: const pw.TextStyle(
+                      fontSize: 9, color: PdfColors.grey),
+                ),
+              ),
+            ];
+          },
+        ),
+      );
+
+      if (mounted) Navigator.pop(context);
+
+      await Printing.sharePdf(
+        bytes: await pdf.save(),
+        filename: 'omega_chat_${now.millisecondsSinceEpoch}.pdf',
+      );
+    } catch (e) {
+      if (mounted) Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("PDF error: $e")),
+      );
+    }
   }
 
   void _showAttachmentSheet() {
@@ -823,13 +988,13 @@ class _NewChatScreenState extends State<NewChatScreen> {
                     ),
                     Row(
                       children: [
-                        // ✅ PDF Export — messages irukum pothu matum show
+                        // ✅ Export & Share — messages irukum pothu matum
                         if (messages.isNotEmpty)
                           IconButton(
-                            icon: const Icon(Icons.picture_as_pdf,
+                            icon: const Icon(Icons.ios_share_rounded,
                                 color: Color(0xFF4F7EA6)),
-                            onPressed: _exportChatAsPDF,
-                            tooltip: "Export PDF",
+                            onPressed: _showExportSheet,
+                            tooltip: "Export & Share",
                           ),
                         IconButton(
                           icon: const Icon(Icons.add, color: Color(0xFF4F7EA6)),
