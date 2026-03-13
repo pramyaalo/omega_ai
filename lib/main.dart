@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // ✅ Add
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'HomeScreen.dart';
-import 'LoginScreen.dart'; // ✅ Add
+import 'LoginScreen.dart';
 import 'SignupScreen.dart';
+import 'OnboardingScreen.dart'; // ✅
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -36,13 +37,15 @@ Future<void> main() async {
 
   final prefs = await SharedPreferences.getInstance();
   final isDark = prefs.getBool('dark_mode') ?? false;
+  final onboardingDone = prefs.getBool('onboarding_done') ?? false; // ✅
 
-  runApp(OmegaApp(isDark: isDark));
+  runApp(OmegaApp(isDark: isDark, onboardingDone: onboardingDone));
 }
 
 class OmegaApp extends StatefulWidget {
   final bool isDark;
-  const OmegaApp({super.key, required this.isDark});
+  final bool onboardingDone; // ✅
+  const OmegaApp({super.key, required this.isDark, required this.onboardingDone});
 
   static _OmegaAppState? of(BuildContext context) =>
       context.findAncestorStateOfType<_OmegaAppState>();
@@ -53,11 +56,13 @@ class OmegaApp extends StatefulWidget {
 
 class _OmegaAppState extends State<OmegaApp> {
   late bool isDark;
+  late bool onboardingDone; // ✅
 
   @override
   void initState() {
     super.initState();
     isDark = widget.isDark;
+    onboardingDone = widget.onboardingDone; // ✅
   }
 
   void toggleDark(bool val) async {
@@ -119,7 +124,8 @@ class _OmegaAppState extends State<OmegaApp> {
         ),
       ),
 
-      home: const OmegaHome(),
+      // ✅ Onboarding check — first install la OnboardingScreen, apram OmegaHome
+      home: onboardingDone ? const OmegaHome() : const OnboardingScreen(),
     );
   }
 }
@@ -137,8 +143,7 @@ class OmegaHome extends StatelessWidget {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle(
         statusBarColor: bgColor,
-        statusBarIconBrightness:
-        isDark ? Brightness.light : Brightness.dark,
+        statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
         systemNavigationBarColor: bgColor,
       ),
 
@@ -151,10 +156,8 @@ class OmegaHome extends StatelessWidget {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Scaffold(
               backgroundColor: bgColor,
-              body: Center(
-                child: CircularProgressIndicator(
-                  color: const Color(0xFF4F7EA6),
-                ),
+              body: const Center(
+                child: CircularProgressIndicator(color: Color(0xFF4F7EA6)),
               ),
             );
           }
@@ -222,15 +225,12 @@ class OmegaHome extends StatelessWidget {
                           const SizedBox(height: 16),
                           Text(
                             "Collaborate, analyze and build faster - all in one intelligent AI workspace.",
-                            style:
-                            TextStyle(fontSize: 14, color: subTextColor),
+                            style: TextStyle(fontSize: 14, color: subTextColor),
                           ),
 
-                          SizedBox(
-                              height:
-                              MediaQuery.of(context).size.height * 0.06),
+                          SizedBox(height: MediaQuery.of(context).size.height * 0.06),
 
-                          // ✅ Get Started — Guest mode
+                          // Get Started — Guest mode
                           SizedBox(
                             width: double.infinity,
                             height: 50,
@@ -244,20 +244,16 @@ class OmegaHome extends StatelessWidget {
                               onPressed: () => Navigator.pushReplacement(
                                 context,
                                 MaterialPageRoute(
-                                    builder: (_) =>
-                                    const HomeScreen(isGuest: true)),
+                                    builder: (_) => const HomeScreen(isGuest: true)),
                               ),
                               child: const Text("Get started",
-                                  style: TextStyle(
-                                      fontSize: 16, color: Colors.white)),
+                                  style: TextStyle(fontSize: 16, color: Colors.white)),
                             ),
                           ),
 
-                          SizedBox(
-                              height:
-                              MediaQuery.of(context).size.height * 0.02),
+                          SizedBox(height: MediaQuery.of(context).size.height * 0.02),
 
-                          // ✅ Login button add pannuvom
+                          // Login button
                           SizedBox(
                             width: double.infinity,
                             height: 50,
@@ -270,18 +266,14 @@ class OmegaHome extends StatelessWidget {
                               ),
                               onPressed: () => Navigator.push(
                                 context,
-                                MaterialPageRoute(
-                                    builder: (_) => const LoginScreen()),
+                                MaterialPageRoute(builder: (_) => const LoginScreen()),
                               ),
                               child: const Text("Login",
-                                  style: TextStyle(
-                                      fontSize: 16, color: Colors.white)),
+                                  style: TextStyle(fontSize: 16, color: Colors.white)),
                             ),
                           ),
 
-                          SizedBox(
-                              height:
-                              MediaQuery.of(context).size.height * 0.02),
+                          SizedBox(height: MediaQuery.of(context).size.height * 0.02),
 
                           // Sign Up
                           SizedBox(
@@ -290,8 +282,7 @@ class OmegaHome extends StatelessWidget {
                             child: TextButton(
                               onPressed: () => Navigator.push(
                                 context,
-                                MaterialPageRoute(
-                                    builder: (_) => const SignupScreen()),
+                                MaterialPageRoute(builder: (_) => const SignupScreen()),
                               ),
                               style: TextButton.styleFrom(
                                 shape: RoundedRectangleBorder(
