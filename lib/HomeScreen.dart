@@ -1,10 +1,13 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'Costestimatorscreen.dart';
 import 'NewCHatScreen.dart';
 import 'SettingsScreen.dart';
 import 'TemplateGeneratorScreen.dart';
 import 'RoomDesignerScreen.dart';
+import 'Videoaiscreen.dart';
+import 'Wallmeasurementscreen.dart';
 
 class HomeScreen extends StatefulWidget {
   final bool isGuest;
@@ -219,8 +222,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     color: const Color(0xFFE94560),
                     cardColor: cardColor,
                     textColor: textColor,
-                    badge: 'Soon',
-                    onTap: () => _comingSoon('Video Generator'),
+                    badge: null,
+                    onTap: () => Navigator.push(context, MaterialPageRoute(
+                        builder: (_) => const VideoAiScreen()
+                    )),
                   )),
                 ]),
 
@@ -236,8 +241,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     color: const Color(0xFFFF6D00),
                     cardColor: cardColor,
                     textColor: textColor,
-                    badge: 'Soon',
-                    onTap: () => _comingSoon('Wall Measurement'),
+                    badge: null,
+                    onTap: () => Navigator.push(context, MaterialPageRoute(
+                builder: (_) => const WallMeasurementScreen()
+            )),
                   )),
                   const SizedBox(width: 12),
                   Expanded(child: _bigFeatureCard(
@@ -248,8 +255,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     color: const Color(0xFF9C27B0),
                     cardColor: cardColor,
                     textColor: textColor,
-                    badge: 'Soon',
-                    onTap: () => _comingSoon('Cost Estimator'),
+                    badge: null,
+                    onTap: () => Navigator.push(context, MaterialPageRoute(
+                        builder: (_) => const CostEstimatorScreen())),
                   )),
                 ]),
 

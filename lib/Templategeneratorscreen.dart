@@ -196,12 +196,14 @@ class _TemplateGeneratorScreenState extends State<TemplateGeneratorScreen>
     _channel!.sink.add(jsonEncode({
       'message': prompt,
       'language': _selectedLanguage,
+      'model': 'Llama 3.3 70B', // ✅ Better model for detailed templates
     }));
   }
 
   void _copyTemplate() {
     Clipboard.setData(ClipboardData(text: _generatedTemplate));
     _showSnack('Template copied! ✅');
+
   }
 
   void _shareTemplate() {
