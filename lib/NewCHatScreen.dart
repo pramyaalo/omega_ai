@@ -42,66 +42,102 @@ class _NewChatScreenState extends State<NewChatScreen> {
   String _searchQuery = "";
   List<Map<String, dynamic>> _searchResults = [];
   String _selectedLanguage = "English";
-  String _selectedModel = "Llama 3.1 8B"; // ✅ Add
-  // ✅ Temporary Chat
+  String _selectedModel = "Llama 3.1 8B";
   bool _isTemporary = false;
 
+  // ── Website-exact color palette ──────────────────────────────
+  static const kCyan        = Color(0xFF1BA8D4);   // "Omega AI" cyan
+  static const kCyanDark    = Color(0xFF1890B8);   // button gradient start
+  static const kCyanLight   = Color(0xFF26C0F0);   // button gradient end
+  static const kBgWhite     = Color(0xFFFFFFFF);   // main bg
+  static const kBgLight     = Color(0xFFF6FAFE);   // page bg
+  static const kSidebarBg   = Color(0xFFFFFFFF);   // sidebar
+  static const kCardBg      = Color(0xFFF0F7FF);   // quick-action card
+  static const kCardBorder  = Color(0xFFD1E9F6);   // card border
+  static const kBorderLight = Color(0xFFE8EFF5);   // dividers / input border
+  static const kTextPrimary = Color(0xFF111827);   // headings
+  static const kTextSub     = Color(0xFF6B7280);   // sub text
+  static const kTextMuted   = Color(0xFF9CA3AF);   // placeholder
+
+  // dark-mode counterparts
+  static const kDarkBg      = Color(0xFF0D1B2A);
+  static const kDarkBg2     = Color(0xFF0A2540);
+  static const kDarkCard    = Color(0xFF1A2744);
+  static const kDarkSidebar = Color(0xFF112035);
+  static const kDarkBorder  = Color(0xFF1E3354);
+  static const kDarkSub     = Color(0xFF8899AA);
+
+  // ── Quick-action cards (website's 4 cards) ───────────────────
+  final List<Map<String, dynamic>> _quickCards = [
+    {'icon': Icons.edit_document,       'label': 'Edit & return file',    'prompt': 'Edit this file: '},
+    {'icon': Icons.code_rounded,        'label': 'Write or fix code',     'prompt': 'Write code for: '},
+    {'icon': Icons.summarize_rounded,   'label': 'Analyze & summarize',   'prompt': 'Analyze and summarize: '},
+    {'icon': Icons.image_outlined,      'label': 'Generate an image',     'prompt': 'Generate an image of: '},
+  ];
+
+  // ── i18n ─────────────────────────────────────────────────────
   Map<String, Map<String, String>> _uiText = {
     "English": {
-      "title": "OMEGA AI", "newChat": "New Chat", "recentChats": "Recent Chats",
-      "pinnedChats": "Pinned Chats", "noChats": "No chats yet", "settings": "Settings",
-      "askAnything": "Ask anything...", "listening": "Listening...",
+      "title": "Omega AI", "newChat": "New Chat",
+      "recentChats": "Recent Chats", "pinnedChats": "Pinned Chats",
+      "noChats": "No chats yet", "settings": "Settings",
+      "askAnything": "Ask Omega anything...", "listening": "Listening...",
       "searchHint": "Search messages...", "noResults": "No results found",
       "noMessages": "No messages found", "tryDifferent": "Try a different keyword",
-      "howCanIHelp": "How can I help you today?", "imageSelected": "Image selected",
-      "attach": "Attach", "quickActions": "Quick Actions", "exportShare": "Export & Share",
+      "howCanIHelp": "Welcome to", "subTitle": "Your autonomous AI assistant. I detect intent, process files, and deliver structured answers — all without follow-up questions.",
+      "imageSelected": "Image selected", "attach": "Attach",
+      "quickActions": "Quick Actions", "exportShare": "Export & Share",
       "exportPdf": "Export PDF", "shareChat": "Share Chat",
       "noMessagesToShare": "No messages to share!", "noMessagesToExport": "No messages to export!",
       "temporaryChat": "Temporary Chat", "tempChatHint": "This chat won't be saved",
     },
     "Tamil": {
-      "title": "ஒமேகா AI", "newChat": "புதிய அரட்டை", "recentChats": "சமீபத்திய அரட்டைகள்",
-      "pinnedChats": "பின் செய்யப்பட்டவை", "noChats": "அரட்டைகள் இல்லை", "settings": "அமைப்புகள்",
+      "title": "ஒமேகா AI", "newChat": "புதிய அரட்டை",
+      "recentChats": "சமீபத்திய அரட்டைகள்", "pinnedChats": "பின் செய்யப்பட்டவை",
+      "noChats": "அரட்டைகள் இல்லை", "settings": "அமைப்புகள்",
       "askAnything": "எதையும் கேளுங்கள்...", "listening": "கேட்கிறேன்...",
       "searchHint": "செய்திகளை தேடுங்கள்...", "noResults": "முடிவுகள் இல்லை",
       "noMessages": "செய்திகள் கிடைக்கவில்லை", "tryDifferent": "வேறு வார்த்தை முயற்சிக்கவும்",
-      "howCanIHelp": "இன்று நான் உங்களுக்கு எப்படி உதவலாம்?", "imageSelected": "படம் தேர்ந்தெடுக்கப்பட்டது",
-      "attach": "இணைக்கவும்", "quickActions": "விரைவு செயல்கள்",
-      "exportShare": "ஏற்றுமதி & பகிர்வு", "exportPdf": "PDF ஏற்றுமதி",
-      "shareChat": "அரட்டை பகிர்வு", "noMessagesToShare": "பகிர செய்திகள் இல்லை!",
-      "noMessagesToExport": "ஏற்றுமதி செய்ய செய்திகள் இல்லை!",
+      "howCanIHelp": "வரவேற்கிறோம்", "subTitle": "உங்கள் AI உதவியாளர்",
+      "imageSelected": "படம் தேர்ந்தெடுக்கப்பட்டது", "attach": "இணைக்கவும்",
+      "quickActions": "விரைவு செயல்கள்", "exportShare": "ஏற்றுமதி & பகிர்வு",
+      "exportPdf": "PDF ஏற்றுமதி", "shareChat": "அரட்டை பகிர்வு",
+      "noMessagesToShare": "பகிர செய்திகள் இல்லை!", "noMessagesToExport": "ஏற்றுமதி செய்ய செய்திகள் இல்லை!",
       "temporaryChat": "தற்காலிக அரட்டை", "tempChatHint": "இந்த அரட்டை சேமிக்கப்படாது",
     },
     "Hindi": {
-      "title": "ओमेगा AI", "newChat": "नई चैट", "recentChats": "हाल की चैट",
-      "pinnedChats": "पिन की गई चैट", "noChats": "कोई चैट नहीं", "settings": "सेटिंग्स",
+      "title": "ओमेगा AI", "newChat": "नई चैट",
+      "recentChats": "हाल की चैट", "pinnedChats": "पिन की गई चैट",
+      "noChats": "कोई चैट नहीं", "settings": "सेटिंग्स",
       "askAnything": "कुछ भी पूछें...", "listening": "सुन रहा हूँ...",
       "searchHint": "संदेश खोजें...", "noResults": "कोई परिणाम नहीं",
       "noMessages": "कोई संदेश नहीं मिला", "tryDifferent": "कोई और शब्द आज़माएं",
-      "howCanIHelp": "आज मैं आपकी कैसे मदद कर सकता हूँ?", "imageSelected": "छवि चुनी गई",
-      "attach": "संलग्न करें", "quickActions": "त्वरित क्रियाएं",
-      "exportShare": "निर्यात और साझा करें", "exportPdf": "PDF निर्यात",
-      "shareChat": "चैट साझा करें", "noMessagesToShare": "साझा करने के लिए कोई संदेश नहीं!",
-      "noMessagesToExport": "निर्यात के लिए कोई संदेश नहीं!",
+      "howCanIHelp": "स्वागत है", "subTitle": "आपका AI सहायक",
+      "imageSelected": "छवि चुनी गई", "attach": "संलग्न करें",
+      "quickActions": "त्वरित क्रियाएं", "exportShare": "निर्यात और साझा करें",
+      "exportPdf": "PDF निर्यात", "shareChat": "चैट साझा करें",
+      "noMessagesToShare": "साझा करने के लिए कोई संदेश नहीं!", "noMessagesToExport": "निर्यात के लिए कोई संदेश नहीं!",
       "temporaryChat": "अस्थायी चैट", "tempChatHint": "यह चैट सेव नहीं होगी",
     },
     "Spanish": {
-      "title": "OMEGA IA", "newChat": "Nueva conversación", "recentChats": "Chats recientes",
-      "pinnedChats": "Chats fijados", "noChats": "Sin conversaciones", "settings": "Configuración",
+      "title": "OMEGA IA", "newChat": "Nueva conversación",
+      "recentChats": "Chats recientes", "pinnedChats": "Chats fijados",
+      "noChats": "Sin conversaciones", "settings": "Configuración",
       "askAnything": "Pregunta lo que sea...", "listening": "Escuchando...",
       "searchHint": "Buscar mensajes...", "noResults": "Sin resultados",
       "noMessages": "No se encontraron mensajes", "tryDifferent": "Intenta otra palabra",
-      "howCanIHelp": "¿Cómo puedo ayudarte hoy?", "imageSelected": "Imagen seleccionada",
-      "attach": "Adjuntar", "quickActions": "Acciones rápidas",
-      "exportShare": "Exportar y compartir", "exportPdf": "Exportar PDF",
-      "shareChat": "Compartir chat", "noMessagesToShare": "¡No hay mensajes para compartir!",
-      "noMessagesToExport": "¡No hay mensajes para exportar!",
+      "howCanIHelp": "Bienvenido a", "subTitle": "Tu asistente AI autónomo",
+      "imageSelected": "Imagen seleccionada", "attach": "Adjuntar",
+      "quickActions": "Acciones rápidas", "exportShare": "Exportar y compartir",
+      "exportPdf": "Exportar PDF", "shareChat": "Compartir chat",
+      "noMessagesToShare": "¡No hay mensajes para compartir!", "noMessagesToExport": "¡No hay mensajes para exportar!",
       "temporaryChat": "Chat temporal", "tempChatHint": "Este chat no se guardará",
     },
   };
 
   String _t(String key) => _uiText[_selectedLanguage]?[key] ?? _uiText["English"]![key] ?? key;
 
+  // ── helpers ──────────────────────────────────────────────────
   void _togglePin(String id) {
     setState(() {
       final idx = sessions.indexWhere((s) => s['id'] == id);
@@ -110,32 +146,24 @@ class _NewChatScreenState extends State<NewChatScreen> {
     _saveSessions();
   }
 
-  List<Map<String, dynamic>> get _pinnedSessions => sessions.where((s) => s['pinned'] == true).toList();
+  List<Map<String, dynamic>> get _pinnedSessions   => sessions.where((s) => s['pinned'] == true).toList();
   List<Map<String, dynamic>> get _unpinnedSessions => sessions.where((s) => s['pinned'] != true).toList();
 
-  // ✅ Toggle temporary mode
   void _toggleTemporary() {
-    setState(() {
-      _isTemporary = !_isTemporary;
-      messages = [];
-      currentSessionId = _generateId();
-    });
+    setState(() { _isTemporary = !_isTemporary; messages = []; currentSessionId = _generateId(); });
     try { channel?.sink.close(status.goingAway); } catch (_) {}
     _connectWebSocket();
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(children: [
-          Icon(_isTemporary ? Icons.timer : Icons.save, color: Colors.white, size: 18),
-          const SizedBox(width: 8),
-          Text(_isTemporary ? _t('tempChatHint') : "Chat will be saved normally"),
-        ]),
-        backgroundColor: _isTemporary ? Colors.orange : const Color(0xFF2B9348),
-        duration: const Duration(seconds: 2),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-    );
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Row(children: [
+        Icon(_isTemporary ? Icons.timer : Icons.save, color: Colors.white, size: 18),
+        const SizedBox(width: 8),
+        Text(_isTemporary ? _t('tempChatHint') : "Chat will be saved normally"),
+      ]),
+      backgroundColor: _isTemporary ? Colors.orange : const Color(0xFF2B9348),
+      duration: const Duration(seconds: 2),
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+    ));
   }
 
   @override
@@ -154,17 +182,14 @@ class _NewChatScreenState extends State<NewChatScreen> {
   Future<void> _loadLanguage() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() => _selectedLanguage = prefs.getString('selected_language') ?? 'English');
-    _selectedModel = prefs.getString('selected_model') ?? 'Llama 3.1 8B'; // ✅
+    _selectedModel = prefs.getString('selected_model') ?? 'Llama 3.1 8B';
   }
 
   void _scrollToBottom() {
     Future.delayed(const Duration(milliseconds: 100), () {
       if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
+        _scrollController.animateTo(_scrollController.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
       }
     });
   }
@@ -174,10 +199,7 @@ class _NewChatScreenState extends State<NewChatScreen> {
     return 'sessions_${user?.uid ?? 'guest'}';
   }
 
-  Future<void> _initSpeech() async {
-    await _speech.initialize();
-    setState(() {});
-  }
+  Future<void> _initSpeech() async { await _speech.initialize(); setState(() {}); }
 
   Future<void> _startListening() async {
     if (!_isListening) {
@@ -249,11 +271,7 @@ class _NewChatScreenState extends State<NewChatScreen> {
 
   void _startNewSession() {
     final id = _generateId();
-    setState(() {
-      currentSessionId = id;
-      messages = [];
-      _isTemporary = false; // ✅ New chat — temp mode reset
-    });
+    setState(() { currentSessionId = id; messages = []; _isTemporary = false; });
     try { channel?.sink.close(status.goingAway); } catch (_) {}
     _connectWebSocket();
   }
@@ -262,11 +280,27 @@ class _NewChatScreenState extends State<NewChatScreen> {
     setState(() {
       currentSessionId = session['id'];
       messages = List<Map<String, dynamic>>.from(
-        (session['messages'] as List).map((m) => Map<String, dynamic>.from(m)),
-      );
-      _isTemporary = false; // ✅ Load session — temp mode off
+          (session['messages'] as List).map((m) => Map<String, dynamic>.from(m)));
+      _isTemporary = false;
     });
-    Navigator.pop(context);
+    Navigator.pop(context); // drawer மட்டும் close பண்ணும்
+    try { channel?.sink.close(status.goingAway); } catch (_) {}
+    _connectWebSocket();
+    _scrollToBottom();
+  }
+
+  // Search result-ல் இருந்து load — Navigator.pop இல்லாம
+  void _loadSessionFromSearch(Map<String, dynamic> session) {
+    setState(() {
+      currentSessionId = session['id'];
+      messages = List<Map<String, dynamic>>.from(
+          (session['messages'] as List).map((m) => Map<String, dynamic>.from(m)));
+      _isTemporary = false;
+      _isSearching = false;
+      _searchController.clear();
+      _searchQuery = "";
+      _searchResults = [];
+    });
     try { channel?.sink.close(status.goingAway); } catch (_) {}
     _connectWebSocket();
     _scrollToBottom();
@@ -279,13 +313,10 @@ class _NewChatScreenState extends State<NewChatScreen> {
   }
 
   void _saveCurrentSession() {
-    // ✅ Temporary mode — save skip pannuvom
-    if (_isTemporary) return;
-    if (messages.isEmpty) return;
-
+    if (_isTemporary || messages.isEmpty) return;
     final firstMsg = messages.firstWhere((m) => m['isMe'] == true, orElse: () => {"text": "New Chat"});
     final title = (firstMsg['text'] as String).length > 30
-        ? (firstMsg['text'] as String).substring(0, 30) + "..."
+        ? '${(firstMsg['text'] as String).substring(0, 30)}...'
         : firstMsg['text'] as String;
     final toSave = messages.map((m) => {"text": m["text"] ?? "", "isMe": m["isMe"]}).toList();
     final existingIndex = sessions.indexWhere((s) => s['id'] == currentSessionId);
@@ -300,38 +331,79 @@ class _NewChatScreenState extends State<NewChatScreen> {
 
   void _connectWebSocket() {
     try { channel?.sink.close(status.goingAway); } catch (_) {}
-    channel = WebSocketChannel.connect(Uri.parse('ws://192.168.1.4:8000/ws/chat/'));
-    channel!.stream.listen(
-          (data) {
-        final decoded = jsonDecode(data);
-        final type = decoded["type"];
-        final text = decoded["message"] ?? "";
-        setState(() {
-          if (type == "typing") messages.add({"text": "", "isMe": false, "typing": true});
-          if (type == "stream") {
-            for (int i = messages.length - 1; i >= 0; i--) {
-              if (messages[i]["isMe"] == false) {
-                messages[i]["text"] = text;
-                messages[i].remove("typing");
-                break;
-              }
+    channel = WebSocketChannel.connect(Uri.parse('wss://silo-churn-worst.ngrok-free.dev/ws/chat/'));
+    channel!.stream.listen((data) {
+      final decoded = jsonDecode(data);
+      final type    = decoded["type"];
+      final text    = decoded["message"] ?? "";
+
+      setState(() {
+        // ── Normal typing indicator ─────────────────────────────────
+        if (type == "typing") {
+          messages.add({"text": "", "isMe": false, "typing": true});
+        }
+
+        // ── Agent mode activated ────────────────────────────────────
+        if (type == "agent_start") {
+          // Replace typing bubble with agent bubble
+          for (int i = messages.length - 1; i >= 0; i--) {
+            if (messages[i]["isMe"] == false) {
+              messages[i]["isAgent"]     = true;
+              messages[i]["agentSteps"]  = <Map<String, dynamic>>[];
+              messages[i]["agentActive"] = true;
+              break;
             }
           }
-          if (type == "done") {
-            for (int i = messages.length - 1; i >= 0; i--) {
-              if (messages[i]["isMe"] == false) {
-                messages[i].remove("typing");
-                break;
+        }
+
+        // ── Agent step update ───────────────────────────────────────
+        if (type == "agent_step") {
+          for (int i = messages.length - 1; i >= 0; i--) {
+            if (messages[i]["isMe"] == false && messages[i]["isAgent"] == true) {
+              final steps = List<Map<String, dynamic>>.from(
+                  messages[i]["agentSteps"] as List? ?? []);
+              // Update existing step index or add new
+              final idx = decoded["index"] as int? ?? steps.length;
+              final stepData = {"step": decoded["step"], "label": decoded["label"]};
+              if (idx < steps.length) {
+                steps[idx] = stepData;
+              } else {
+                steps.add(stepData);
               }
+              messages[i]["agentSteps"] = steps;
+              break;
             }
-            _saveCurrentSession(); // ✅ Temp mode la ithukulla skip aagum
           }
-        });
-        _scrollToBottom();
-      },
-      onError: (error) => Future.delayed(const Duration(seconds: 2), _connectWebSocket),
-      onDone: () {},
-    );
+        }
+
+        // ── Streaming final answer ──────────────────────────────────
+        if (type == "stream") {
+          for (int i = messages.length - 1; i >= 0; i--) {
+            if (messages[i]["isMe"] == false) {
+              messages[i]["text"]        = text;
+              messages[i]["agentActive"] = false;
+              messages[i].remove("typing");
+              break;
+            }
+          }
+        }
+
+        // ── Done ────────────────────────────────────────────────────
+        if (type == "done") {
+          for (int i = messages.length - 1; i >= 0; i--) {
+            if (messages[i]["isMe"] == false) {
+              messages[i].remove("typing");
+              messages[i]["agentActive"] = false;
+              break;
+            }
+          }
+          _saveCurrentSession();
+        }
+      });
+      _scrollToBottom();
+    },
+        onError: (error) => Future.delayed(const Duration(seconds: 2), _connectWebSocket),
+        onDone: () {});
   }
 
   void _sendMessage() {
@@ -344,7 +416,7 @@ class _NewChatScreenState extends State<NewChatScreen> {
       _sendFile(text);
     } else {
       setState(() => messages.add({"text": text, "isMe": true}));
-      channel!.sink.add(jsonEncode({"message": text, "language": _selectedLanguage}));
+      channel!.sink.add(jsonEncode({"message": text, "language": _selectedLanguage, "model": "Llama 3.1 8B"}));
       messageController.clear();
       _scrollToBottom();
     }
@@ -358,7 +430,8 @@ class _NewChatScreenState extends State<NewChatScreen> {
       messages.add({"text": caption.isNotEmpty ? caption : "📷 Image", "isMe": true, "imageBase64": base64Image, "imageExt": ext});
       selectedImage = null;
     });
-    channel!.sink.add(jsonEncode({"message": caption.isNotEmpty ? caption : "What is in this image?", "image": base64Image, "image_ext": ext, "language": _selectedLanguage, "model": _selectedModel}));    messageController.clear();
+    channel!.sink.add(jsonEncode({"message": caption.isNotEmpty ? caption : "What is in this image?", "image": base64Image, "image_ext": ext, "language": _selectedLanguage, "model": _selectedModel}));
+    messageController.clear();
     _scrollToBottom();
   }
 
@@ -367,7 +440,8 @@ class _NewChatScreenState extends State<NewChatScreen> {
     final base64File = base64Encode(bytes);
     final name = selectedFile!.name;
     setState(() { messages.add({"text": "📎 $name", "isMe": true}); selectedFile = null; });
-    channel!.sink.add(jsonEncode({"message": caption.isNotEmpty ? caption : "Analyze this file: $name", "file": base64File, "file_name": name, "language": _selectedLanguage, "model": _selectedModel}));    messageController.clear();
+    channel!.sink.add(jsonEncode({"message": caption.isNotEmpty ? caption : "Analyze this file: $name", "file": base64File, "file_name": name, "language": _selectedLanguage, "model": _selectedModel}));
+    messageController.clear();
     _scrollToBottom();
   }
 
@@ -388,13 +462,12 @@ class _NewChatScreenState extends State<NewChatScreen> {
     for (final session in sessions) {
       final msgs = session['messages'] as List? ?? [];
       for (final msg in msgs) {
-        final text = (msg['text'] ?? '').toString().toLowerCase();
-        if (text.contains(q)) results.add({'sessionId': session['id'], 'sessionTitle': session['title'] ?? 'Chat', 'text': msg['text'] ?? '', 'isMe': msg['isMe']});
+        if ((msg['text'] ?? '').toString().toLowerCase().contains(q))
+          results.add({'sessionId': session['id'], 'sessionTitle': session['title'] ?? 'Chat', 'text': msg['text'] ?? '', 'isMe': msg['isMe']});
       }
     }
     for (final msg in messages) {
-      final text = (msg['text'] ?? '').toString().toLowerCase();
-      if (text.contains(q) && msg['typing'] != true) {
+      if ((msg['text'] ?? '').toString().toLowerCase().contains(q) && msg['typing'] != true) {
         final alreadyAdded = results.any((r) => r['sessionId'] == currentSessionId && r['text'] == msg['text']);
         if (!alreadyAdded) results.add({'sessionId': currentSessionId, 'sessionTitle': 'Current Chat', 'text': msg['text'] ?? '', 'isMe': msg['isMe']});
       }
@@ -403,7 +476,7 @@ class _NewChatScreenState extends State<NewChatScreen> {
   }
 
   Widget _highlightText(String text, String query, {bool isMe = false}) {
-    if (query.isEmpty) return Text(text, style: TextStyle(fontSize: 13, color: isMe ? Colors.white : Colors.black87));
+    if (query.isEmpty) return Text(text, style: TextStyle(fontSize: 13, color: isMe ? Colors.white : kTextPrimary));
     final lowerText = text.toLowerCase();
     final spans = <TextSpan>[];
     int start = 0;
@@ -415,7 +488,7 @@ class _NewChatScreenState extends State<NewChatScreen> {
           style: const TextStyle(backgroundColor: Color(0xFFFFEB3B), color: Colors.black, fontWeight: FontWeight.bold)));
       start = idx + query.length;
     }
-    return RichText(text: TextSpan(style: TextStyle(fontSize: 13, color: isMe ? Colors.white : Colors.black87), children: spans));
+    return RichText(text: TextSpan(style: TextStyle(fontSize: 13, color: isMe ? Colors.white : kTextPrimary), children: spans));
   }
 
   void _shareChat() {
@@ -424,9 +497,7 @@ class _NewChatScreenState extends State<NewChatScreen> {
     final userName = user?.displayName ?? user?.email?.split('@')[0] ?? "User";
     final now = DateTime.now();
     final buffer = StringBuffer();
-    buffer.writeln("🤖 *OMEGA AI Chat*");
-    buffer.writeln("📅 ${now.day}/${now.month}/${now.year}");
-    buffer.writeln("─────────────────────");
+    buffer.writeln("🤖 *Omega AI Chat*\n📅 ${now.day}/${now.month}/${now.year}\n─────────────────────");
     for (final msg in messages) {
       if (msg['typing'] == true) continue;
       final text = msg['text']?.toString() ?? '';
@@ -440,58 +511,62 @@ class _NewChatScreenState extends State<NewChatScreen> {
 
   void _showExportSheet() {
     if (messages.isEmpty) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_t('noMessagesToExport')))); return; }
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     showModalBottomSheet(
       context: context, backgroundColor: Colors.transparent,
-      builder: (_) {
-        final isDark = Theme.of(context).brightness == Brightness.dark;
-        final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
-        final textColor = isDark ? Colors.white : Colors.black;
-        return Container(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-          decoration: BoxDecoration(color: cardColor, borderRadius: const BorderRadius.vertical(top: Radius.circular(24))),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Container(width: 40, height: 4, margin: const EdgeInsets.only(bottom: 20),
-                decoration: BoxDecoration(color: Colors.grey.withOpacity(0.3), borderRadius: BorderRadius.circular(2))),
-            Text(_t('exportShare'), style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor)),
-            const SizedBox(height: 20),
-            Row(children: [
-              Expanded(child: GestureDetector(
-                onTap: () { Navigator.pop(context); _exportChatAsPDF(); },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 20),
-                  decoration: BoxDecoration(color: const Color(0xFF4F7EA6).withOpacity(0.1), borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFF4F7EA6).withOpacity(0.3))),
-                  child: Column(children: [
-                    const Icon(Icons.picture_as_pdf, color: Color(0xFF4F7EA6), size: 36), const SizedBox(height: 8),
-                    Text(_t('exportPdf'), style: const TextStyle(color: Color(0xFF4F7EA6), fontWeight: FontWeight.w600, fontSize: 14)),
-                    const SizedBox(height: 4),
-                    const Text("Save as PDF file", style: TextStyle(color: Colors.grey, fontSize: 11)),
-                  ]),
-                ),
-              )),
-              const SizedBox(width: 12),
-              Expanded(child: GestureDetector(
-                onTap: () { Navigator.pop(context); _shareChat(); },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 20),
-                  decoration: BoxDecoration(color: Colors.green.withOpacity(0.1), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.green.withOpacity(0.3))),
-                  child: Column(children: [
-                    const Icon(Icons.share_rounded, color: Colors.green, size: 36), const SizedBox(height: 8),
-                    Text(_t('shareChat'), style: const TextStyle(color: Colors.green, fontWeight: FontWeight.w600, fontSize: 14)),
-                    const SizedBox(height: 4),
-                    const Text("WhatsApp, Gmail...", style: TextStyle(color: Colors.grey, fontSize: 11)),
-                  ]),
-                ),
-              )),
-            ]),
+      builder: (_) => Container(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+        decoration: BoxDecoration(
+          color: isDark ? kDarkCard : kBgWhite,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(width: 40, height: 4, margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(color: Colors.grey.withOpacity(0.3), borderRadius: BorderRadius.circular(2))),
+          Text(_t('exportShare'), style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold,
+              color: isDark ? Colors.white : kTextPrimary)),
+          const SizedBox(height: 20),
+          Row(children: [
+            Expanded(child: GestureDetector(
+              onTap: () { Navigator.pop(context); _exportChatAsPDF(); },
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                decoration: BoxDecoration(color: kCyan.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(16), border: Border.all(color: kCardBorder)),
+                child: Column(children: [
+                  const Icon(Icons.picture_as_pdf, color: kCyan, size: 36),
+                  const SizedBox(height: 8),
+                  Text(_t('exportPdf'), style: const TextStyle(color: kCyan, fontWeight: FontWeight.w600, fontSize: 14)),
+                  const SizedBox(height: 4),
+                  const Text("Save as PDF file", style: TextStyle(color: kTextMuted, fontSize: 11)),
+                ]),
+              ),
+            )),
+            const SizedBox(width: 12),
+            Expanded(child: GestureDetector(
+              onTap: () { Navigator.pop(context); _shareChat(); },
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                decoration: BoxDecoration(color: Colors.green.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.green.withOpacity(0.3))),
+                child: Column(children: [
+                  const Icon(Icons.share_rounded, color: Colors.green, size: 36),
+                  const SizedBox(height: 8),
+                  Text(_t('shareChat'), style: const TextStyle(color: Colors.green, fontWeight: FontWeight.w600, fontSize: 14)),
+                  const SizedBox(height: 4),
+                  const Text("WhatsApp, Gmail...", style: TextStyle(color: kTextMuted, fontSize: 11)),
+                ]),
+              ),
+            )),
           ]),
-        );
-      },
+        ]),
+      ),
     );
   }
 
   Future<void> _exportChatAsPDF() async {
     if (messages.isEmpty) return;
-    showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator(color: Color(0xFF4F7EA6))));
+    showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator(color: kCyan)));
     try {
       final pdf = pw.Document();
       final user = FirebaseAuth.instance.currentUser;
@@ -502,32 +577,39 @@ class _NewChatScreenState extends State<NewChatScreen> {
         build: (pw.Context ctx) => [
           pw.Container(
             padding: const pw.EdgeInsets.all(16),
-            decoration: pw.BoxDecoration(color: PdfColor.fromHex('#4F7EA6'), borderRadius: pw.BorderRadius.circular(8)),
+            decoration: pw.BoxDecoration(color: PdfColor.fromHex('#1BA8D4'), borderRadius: pw.BorderRadius.circular(8)),
             child: pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
-              pw.Text('Ω OMEGA AI', style: pw.TextStyle(color: PdfColors.white, fontSize: 20, fontWeight: pw.FontWeight.bold)),
+              pw.Text('Ω Omega AI', style: pw.TextStyle(color: PdfColors.white, fontSize: 20, fontWeight: pw.FontWeight.bold)),
               pw.Text('Chat Export', style: const pw.TextStyle(color: PdfColors.white, fontSize: 12)),
             ]),
           ),
           pw.SizedBox(height: 8),
-          pw.Text('Exported: ${now.day}/${now.month}/${now.year}  |  User: $userName', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey)),
+          pw.Text('Exported: ${now.day}/${now.month}/${now.year}  |  User: $userName',
+              style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey)),
           pw.SizedBox(height: 12), pw.Divider(), pw.SizedBox(height: 8),
           ...messages.where((m) => m['typing'] != true && (m['text'] ?? '').toString().isNotEmpty).map((msg) {
             final isMe = msg['isMe'] as bool;
             return pw.Container(
               margin: const pw.EdgeInsets.only(bottom: 14),
               child: pw.Column(crossAxisAlignment: isMe ? pw.CrossAxisAlignment.end : pw.CrossAxisAlignment.start, children: [
-                pw.Text(isMe ? userName : 'Omega AI', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: isMe ? PdfColor.fromHex('#4F7EA6') : PdfColors.grey700)),
+                pw.Text(isMe ? userName : 'Omega AI',
+                    style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold,
+                        color: isMe ? PdfColor.fromHex('#1BA8D4') : PdfColors.grey700)),
                 pw.SizedBox(height: 4),
                 pw.Container(
                   padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: pw.BoxDecoration(color: isMe ? PdfColor.fromHex('#4F7EA6') : PdfColor.fromHex('#F0F4F8'), borderRadius: pw.BorderRadius.circular(12)),
-                  child: pw.Text(msg['text'].toString(), style: pw.TextStyle(fontSize: 11, color: isMe ? PdfColors.white : PdfColors.black)),
+                  decoration: pw.BoxDecoration(
+                      color: isMe ? PdfColor.fromHex('#1BA8D4') : PdfColor.fromHex('#F0F7FF'),
+                      borderRadius: pw.BorderRadius.circular(12)),
+                  child: pw.Text(msg['text'].toString(),
+                      style: pw.TextStyle(fontSize: 11, color: isMe ? PdfColors.white : PdfColors.black)),
                 ),
               ]),
             );
           }).toList(),
           pw.SizedBox(height: 16), pw.Divider(), pw.SizedBox(height: 8),
-          pw.Center(child: pw.Text('Generated by Omega AI • ${now.day}/${now.month}/${now.year}', style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey))),
+          pw.Center(child: pw.Text('Generated by Omega AI • ${now.day}/${now.month}/${now.year}',
+              style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey))),
         ],
       ));
       if (mounted) Navigator.pop(context);
@@ -539,38 +621,48 @@ class _NewChatScreenState extends State<NewChatScreen> {
   }
 
   void _showAttachmentSheet() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     showModalBottomSheet(
       context: context, isScrollControlled: true, backgroundColor: Colors.transparent,
       builder: (_) => Container(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-        decoration: const BoxDecoration(color: Color(0xFF4F7EA6), borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
+        decoration: BoxDecoration(
+          color: isDark ? kDarkCard : kBgWhite,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border(top: BorderSide(color: isDark ? kDarkBorder : kBorderLight)),
+        ),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Container(width: 40, height: 4, margin: const EdgeInsets.only(bottom: 20), decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2))),
-          Align(alignment: Alignment.centerLeft, child: Text(_t('attach'), style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold))),
+          Container(width: 40, height: 4, margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(color: kBorderLight, borderRadius: BorderRadius.circular(2))),
+          Align(alignment: Alignment.centerLeft,
+              child: Text(_t('attach'), style: TextStyle(color: isDark ? Colors.white : kTextPrimary,
+                  fontSize: 18, fontWeight: FontWeight.bold))),
           const SizedBox(height: 16),
           Row(children: [
-            _attachOption(Icons.camera_alt_rounded, "Camera", const Color(0xFF0F3460), () { Navigator.pop(context); _pickImage(ImageSource.camera); }),
-            const SizedBox(width: 12),
-            _attachOption(Icons.photo_library_rounded, "Gallery", const Color(0xFF16213E), () { Navigator.pop(context); _pickImage(ImageSource.gallery); }),
-            const SizedBox(width: 12),
-            _attachOption(Icons.insert_drive_file_rounded, "Files", const Color(0xFF0F3460), () { Navigator.pop(context); _pickFile(); }),
+            _attachOption(Icons.camera_alt_rounded,         "Camera",  () { Navigator.pop(context); _pickImage(ImageSource.camera); }),
+            const SizedBox(width: 10),
+            _attachOption(Icons.photo_library_rounded,      "Gallery", () { Navigator.pop(context); _pickImage(ImageSource.gallery); }),
+            const SizedBox(width: 10),
+            _attachOption(Icons.insert_drive_file_rounded,  "Files",   () { Navigator.pop(context); _pickFile(); }),
           ]),
           const SizedBox(height: 24),
-          Align(alignment: Alignment.centerLeft, child: Text(_t('quickActions'), style: const TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.w600))),
+          Align(alignment: Alignment.centerLeft,
+              child: Text(_t('quickActions'), style: TextStyle(color: isDark ? kDarkSub : kTextSub,
+                  fontSize: 13, fontWeight: FontWeight.w600))),
           const SizedBox(height: 12),
           GridView.count(
             crossAxisCount: 3, shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),
             crossAxisSpacing: 10, mainAxisSpacing: 10, childAspectRatio: 1.1,
             children: [
-              _quickAction(Icons.image_search_rounded, "Create Image", const Color(0xFFE94560), () { Navigator.pop(context); messageController.text = "Create an image of "; }),
-              _quickAction(Icons.psychology_rounded, "Deep Think", const Color(0xFF533483), () { Navigator.pop(context); messageController.text = "Think deeply and explain: "; }),
-              _quickAction(Icons.travel_explore_rounded, "Web Search", const Color(0xFF0F3460), () { Navigator.pop(context); messageController.text = "Search and tell me about: "; }),
-              _quickAction(Icons.shopping_bag_rounded, "Shopping", const Color(0xFF2B9348), () { Navigator.pop(context); messageController.text = "Best options to buy: "; }),
-              _quickAction(Icons.science_rounded, "Research", const Color(0xFFB5451B), () { Navigator.pop(context); messageController.text = "Research and summarize: "; }),
-              _quickAction(Icons.school_rounded, "Study", const Color(0xFF1B4332), () { Navigator.pop(context); messageController.text = "Teach me about: "; }),
-              _quickAction(Icons.explore_rounded, "Explore", const Color(0xFF2D6A4F), () { Navigator.pop(context); messageController.text = "Explore the topic: "; }),
-              _quickAction(Icons.calculate_rounded, "Math", const Color(0xFF6A0572), () { Navigator.pop(context); messageController.text = "Solve this: "; }),
-              _quickAction(Icons.code_rounded, "Code", const Color(0xFF1A1A4E), () { Navigator.pop(context); messageController.text = "Write code for: "; }),
+              _quickActionTile(Icons.image_search_rounded,    "Create Image",  const Color(0xFFE94560), () { Navigator.pop(context); messageController.text = "Create an image of "; }),
+              _quickActionTile(Icons.psychology_rounded,      "Deep Think",    const Color(0xFF533483), () { Navigator.pop(context); messageController.text = "Think deeply and explain: "; }),
+              _quickActionTile(Icons.travel_explore_rounded,  "Web Search",    kCyanDark,               () { Navigator.pop(context); messageController.text = "Search and tell me about: "; }),
+              _quickActionTile(Icons.shopping_bag_rounded,    "Shopping",      const Color(0xFF2B9348), () { Navigator.pop(context); messageController.text = "Best options to buy: "; }),
+              _quickActionTile(Icons.science_rounded,         "Research",      const Color(0xFFB5451B), () { Navigator.pop(context); messageController.text = "Research and summarize: "; }),
+              _quickActionTile(Icons.school_rounded,          "Study",         const Color(0xFF1B4332), () { Navigator.pop(context); messageController.text = "Teach me about: "; }),
+              _quickActionTile(Icons.explore_rounded,         "Explore",       const Color(0xFF2D6A4F), () { Navigator.pop(context); messageController.text = "Explore the topic: "; }),
+              _quickActionTile(Icons.calculate_rounded,       "Math",          const Color(0xFF6A0572), () { Navigator.pop(context); messageController.text = "Solve this: "; }),
+              _quickActionTile(Icons.code_rounded,            "Code",          const Color(0xFF1A1A4E), () { Navigator.pop(context); messageController.text = "Write code for: "; }),
             ],
           ),
         ]),
@@ -578,21 +670,34 @@ class _NewChatScreenState extends State<NewChatScreen> {
     );
   }
 
-  Widget _attachOption(IconData icon, String label, Color color, VoidCallback onTap) {
+  Widget _attachOption(IconData icon, String label, VoidCallback onTap) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Expanded(child: GestureDetector(onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16),
-        decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white10)),
-        child: Column(children: [Icon(icon, color: Colors.white, size: 28), const SizedBox(height: 6), Text(label, style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w500))]),
+        decoration: BoxDecoration(
+          color: isDark ? kDarkBg : kCardBg,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: isDark ? kDarkBorder : kCardBorder),
+        ),
+        child: Column(children: [
+          Icon(icon, color: kCyan, size: 26),
+          const SizedBox(height: 6),
+          Text(label, style: TextStyle(color: isDark ? Colors.white70 : kTextSub, fontSize: 12, fontWeight: FontWeight.w500)),
+        ]),
       ),
     ));
   }
 
-  Widget _quickAction(IconData icon, String label, Color color, VoidCallback onTap) {
+  Widget _quickActionTile(IconData icon, String label, Color color, VoidCallback onTap) {
     return GestureDetector(onTap: onTap,
       child: Container(
-        decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(14), border: Border.all(color: Colors.white10)),
-        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(icon, color: Colors.white, size: 24), const SizedBox(height: 6), Text(label, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w500))]),
+        decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(14)),
+        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Icon(icon, color: Colors.white, size: 24),
+          const SizedBox(height: 6),
+          Text(label, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w500)),
+        ]),
       ),
     );
   }
@@ -601,38 +706,35 @@ class _NewChatScreenState extends State<NewChatScreen> {
     final isActive = session['id'] == currentSessionId;
     final isPinned = session['pinned'] == true;
     return Container(
-      margin: const EdgeInsets.only(bottom: 4),
+      margin: const EdgeInsets.only(bottom: 2),
       decoration: BoxDecoration(
-        color: isActive ? const Color(0xFF4F7EA6).withOpacity(0.15) : Colors.transparent,
-        borderRadius: BorderRadius.circular(10),
+        color: isActive ? kCyan.withOpacity(0.08) : Colors.transparent,
+        borderRadius: BorderRadius.circular(8),
       ),
       child: ListTile(
-        leading: Icon(
-          isPinned ? Icons.push_pin : Icons.chat_bubble_outline,
-          color: isPinned ? const Color(0xFFFFB300) : const Color(0xFF4F7EA6),
-          size: 20,
-        ),
+        dense: true,
+        leading: Icon(isPinned ? Icons.push_pin : Icons.chat_bubble_outline,
+            color: isPinned ? const Color(0xFFFFB300) : kCyan, size: 18),
         title: Text(session['title'] ?? 'Chat', maxLines: 1, overflow: TextOverflow.ellipsis,
-            style: TextStyle(fontSize: 14, color: textColor, fontWeight: isActive ? FontWeight.w600 : FontWeight.normal)),
+            style: TextStyle(fontSize: 13, color: textColor,
+                fontWeight: isActive ? FontWeight.w600 : FontWeight.normal)),
         trailing: PopupMenuButton<String>(
-          icon: const Icon(Icons.more_vert, color: Colors.grey, size: 18),
+          icon: const Icon(Icons.more_vert, color: kTextMuted, size: 16),
           onSelected: (val) {
             if (val == 'pin') _togglePin(session['id']);
             if (val == 'delete') _deleteSession(session['id']);
           },
           itemBuilder: (_) => [
             PopupMenuItem(value: 'pin',
-              child: Row(children: [
-                Icon(isPinned ? Icons.push_pin_outlined : Icons.push_pin, color: const Color(0xFFFFB300), size: 18),
-                const SizedBox(width: 8), Text(isPinned ? 'Unpin' : 'Pin'),
-              ]),
-            ),
+                child: Row(children: [
+                  Icon(isPinned ? Icons.push_pin_outlined : Icons.push_pin, color: const Color(0xFFFFB300), size: 16),
+                  const SizedBox(width: 8), Text(isPinned ? 'Unpin' : 'Pin'),
+                ])),
             const PopupMenuItem(value: 'delete',
-              child: Row(children: [
-                Icon(Icons.delete_outline, color: Colors.red, size: 18),
-                SizedBox(width: 8), Text('Delete', style: TextStyle(color: Colors.red)),
-              ]),
-            ),
+                child: Row(children: [
+                  Icon(Icons.delete_outline, color: Colors.red, size: 16),
+                  SizedBox(width: 8), Text('Delete', style: TextStyle(color: Colors.red)),
+                ])),
           ],
         ),
         onTap: () => _loadSession(session),
@@ -649,344 +751,465 @@ class _NewChatScreenState extends State<NewChatScreen> {
     super.dispose();
   }
 
+  // ════════════════════════════════════════════════════════════
+  //  BUILD
+  // ════════════════════════════════════════════════════════════
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFAACBE5);
-    final cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
-    final textColor = isDark ? Colors.white : Colors.black;
-    final drawerBg = isDark ? const Color(0xFF1A1A1A) : const Color(0xFFEAF3FB);
-    final subTextColor = isDark ? Colors.white38 : Colors.black54;
-    final pinned = _pinnedSessions;
+
+    // ── Theme-aware tokens (exactly matches website in light mode) ──
+    final bgColor      = isDark ? kDarkBg      : kBgWhite;
+    final cardColor    = isDark ? kDarkCard    : kBgWhite;
+    final drawerBg     = isDark ? kDarkSidebar : kSidebarBg;
+    final textColor    = isDark ? Colors.white : kTextPrimary;
+    final subColor     = isDark ? kDarkSub     : kTextSub;
+    final borderColor  = isDark ? kDarkBorder  : kBorderLight;
+
+    final pinned   = _pinnedSessions;
     final unpinned = _unpinnedSessions;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle(
-        statusBarColor: _isTemporary ? Colors.orange.shade800 : bgColor,
-        statusBarIconBrightness: _isTemporary ? Brightness.light : (isDark ? Brightness.light : Brightness.dark),
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
         systemNavigationBarColor: bgColor,
       ),
       child: Scaffold(
         backgroundColor: bgColor,
-        extendBodyBehindAppBar: true,
+
+        // ── DRAWER ──────────────────────────────────────────────
         drawer: Drawer(
           backgroundColor: drawerBg,
+          elevation: 0,
           child: SafeArea(child: Column(children: [
-            Container(width: double.infinity, padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
-                color: const Color(0xFF4F7EA6),
-                child: Text("Ω ${_t('title')}", style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold, letterSpacing: 1))),
+
+            // Sidebar header
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(16, 18, 16, 14),
+              decoration: BoxDecoration(
+                border: Border(bottom: BorderSide(color: borderColor)),
+              ),
+              child: Row(children: [
+                Container(
+                  width: 32, height: 32,
+                  decoration: BoxDecoration(color: kCyan, borderRadius: BorderRadius.circular(8)),
+                  child: const Center(child: Text("Ω", style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold))),
+                ),
+                const SizedBox(width: 10),
+                Text("Omega AI", style: TextStyle(color: textColor, fontSize: 18, fontWeight: FontWeight.bold)),
+              ]),
+            ),
+
+            // New Chat button
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-              child: SizedBox(width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(14, 14, 14, 8),
+              child: SizedBox(
+                width: double.infinity,
                 child: ElevatedButton.icon(
-                  icon: const Icon(Icons.add, size: 18), label: Text(_t('newChat')),
-                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF4F7EA6), foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                  icon: const Icon(Icons.add, size: 17),
+                  label: Text(_t('newChat'), style: const TextStyle(fontWeight: FontWeight.w600)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: kCyan,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
                   onPressed: () { Navigator.pop(context); _startNewSession(); },
                 ),
               ),
             ),
-            const SizedBox(height: 12),
+
+            // Recent label
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 6, 18, 6),
+              child: Align(alignment: Alignment.centerLeft,
+                  child: Text("RECENT", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700,
+                      color: subColor, letterSpacing: 1.0))),
+            ),
+
             Expanded(
               child: sessions.isEmpty
-                  ? Center(child: Text(_t('noChats'), style: TextStyle(color: subTextColor)))
-                  : ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                children: [
-                  if (pinned.isNotEmpty) ...[
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(8, 4, 8, 6),
+                  ? Center(child: Text(_t('noChats'), style: TextStyle(color: subColor, fontSize: 13)))
+                  : ListView(padding: const EdgeInsets.symmetric(horizontal: 8), children: [
+                if (pinned.isNotEmpty) ...[
+                  Padding(padding: const EdgeInsets.fromLTRB(8, 4, 8, 4),
                       child: Row(children: [
-                        const Icon(Icons.push_pin, color: Color(0xFFFFB300), size: 14),
+                        const Icon(Icons.push_pin, color: Color(0xFFFFB300), size: 13),
                         const SizedBox(width: 4),
-                        Text(_t('pinnedChats'), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: Color(0xFFFFB300), letterSpacing: 0.5)),
-                      ]),
-                    ),
-                    ...pinned.map((s) => _sessionTile(s, textColor, subTextColor)),
-                    const Divider(height: 16),
-                  ],
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(8, 4, 8, 6),
-                    child: Text(_t('recentChats'), style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: subTextColor, letterSpacing: 0.5)),
-                  ),
-                  if (unpinned.isEmpty)
-                    Padding(padding: const EdgeInsets.all(16), child: Center(child: Text(_t('noChats'), style: TextStyle(color: subTextColor, fontSize: 13))))
-                  else
-                    ...unpinned.map((s) => _sessionTile(s, textColor, subTextColor)),
+                        Text(_t('pinnedChats'), style: const TextStyle(fontWeight: FontWeight.w600,
+                            fontSize: 11, color: Color(0xFFFFB300), letterSpacing: 0.4)),
+                      ])),
+                  ...pinned.map((s) => _sessionTile(s, textColor, subColor)),
+                  Divider(height: 16, color: borderColor),
                 ],
-              ),
+                ...unpinned.map((s) => _sessionTile(s, textColor, subColor)),
+              ]),
             ),
-            const Divider(height: 1),
+
+            Divider(height: 1, color: borderColor),
+
+            // Settings row
             ListTile(
-              leading: Icon(Icons.settings_outlined, color: subTextColor),
-              title: Text(_t('settings'), style: TextStyle(fontWeight: FontWeight.w500, color: textColor)),
-              trailing: Icon(Icons.chevron_right, color: subTextColor),
+              dense: true,
+              leading: Icon(Icons.settings_outlined, color: subColor, size: 20),
+              title: Text(_t('settings'), style: TextStyle(color: textColor, fontSize: 14, fontWeight: FontWeight.w500)),
+              trailing: Icon(Icons.chevron_right, color: subColor, size: 18),
               onTap: () async {
                 Navigator.pop(context);
                 await Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
                 _loadLanguage();
               },
             ),
+
+            // User card
             Builder(builder: (context) {
               final user = FirebaseAuth.instance.currentUser;
               final displayName = user?.displayName ?? user?.email?.split('@')[0] ?? "User";
               final email = user?.email ?? "guest@omega.ai";
               final firstLetter = displayName.isNotEmpty ? displayName[0].toUpperCase() : "U";
               return Container(
-                margin: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-                decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(14),
-                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 6, offset: const Offset(0, 2))]),
-                child: ListTile(
-                  leading: CircleAvatar(radius: 20, backgroundColor: const Color(0xFF4F7EA6),
-                      child: Text(firstLetter, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16))),
-                  title: Text(displayName, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: textColor), overflow: TextOverflow.ellipsis),
-                  subtitle: Text(email, style: const TextStyle(fontSize: 11, color: Colors.grey), overflow: TextOverflow.ellipsis),
-                  trailing: const Icon(Icons.settings, color: Color(0xFF4F7EA6), size: 20),
-                  onTap: () async {
-                    Navigator.pop(context);
-                    await Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
-                    _loadLanguage();
-                  },
+                margin: const EdgeInsets.fromLTRB(10, 4, 10, 10),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color: isDark ? kDarkBg : kCardBg,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: borderColor),
                 ),
+                child: Row(children: [
+                  CircleAvatar(radius: 18, backgroundColor: kCyan,
+                      child: Text(firstLetter, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14))),
+                  const SizedBox(width: 10),
+                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(displayName, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: textColor), overflow: TextOverflow.ellipsis),
+                    Text(email, style: const TextStyle(fontSize: 11, color: kTextMuted), overflow: TextOverflow.ellipsis),
+                  ])),
+                  GestureDetector(
+                    onTap: () async {
+                      Navigator.pop(context);
+                      await Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
+                      _loadLanguage();
+                    },
+                    child: const Icon(Icons.settings, color: kCyan, size: 18),
+                  ),
+                ]),
               );
             }),
           ])),
         ),
 
+        // ── BODY ────────────────────────────────────────────────
         body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            child: Column(children: [
+          child: Column(children: [
 
-              // ── HEADER ──
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Builder(builder: (context) => IconButton(
-                    icon: Icon(Icons.menu, color: textColor),
-                    onPressed: () => Scaffold.of(context).openDrawer(),
-                  )),
-                  _isSearching
-                      ? Expanded(child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: TextField(
-                      controller: _searchController, autofocus: true,
-                      style: TextStyle(color: textColor),
-                      decoration: InputDecoration(
-                        hintText: _t('searchHint'),
-                        hintStyle: TextStyle(color: subTextColor),
-                        border: InputBorder.none,
-                      ),
-                      onChanged: (val) { setState(() => _searchQuery = val); _performSearch(val); },
-                    ),
-                  ))
-                      : Expanded(
-                    child: Row(children: [
-                      Text("Ω", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: textColor)),
-                      const SizedBox(width: 6),
-                      Flexible(
-                        child: Text(
-                          _isTemporary ? _t('temporaryChat') : _t('title'),
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w600,
-                            color: _isTemporary ? Colors.orange : textColor,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      if (_isTemporary) ...[
-                        const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: Colors.orange.withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.orange.withOpacity(0.4)),
-                          ),
-                          child: const Row(mainAxisSize: MainAxisSize.min, children: [
-                            Icon(Icons.timer, color: Colors.orange, size: 11),
-                            SizedBox(width: 2),
-                            Text("TEMP", style: TextStyle(color: Colors.orange, fontSize: 9, fontWeight: FontWeight.bold)),
-                          ]),
-                        ),
-                      ],
-                    ]),
+            // ── TOP BAR (website-style minimal) ────────────────
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+              decoration: BoxDecoration(
+                color: bgColor,
+                border: Border(bottom: BorderSide(color: borderColor, width: 0.8)),
+              ),
+              child: Row(children: [
+                Builder(builder: (ctx) => IconButton(
+                  icon: Icon(Icons.menu_rounded, color: textColor, size: 22),
+                  onPressed: () => Scaffold.of(ctx).openDrawer(),
+                )),
+
+                // Title area
+                Expanded(child: _isSearching
+                    ? TextField(
+                  controller: _searchController, autofocus: true,
+                  style: TextStyle(color: textColor, fontSize: 15),
+                  decoration: InputDecoration(
+                    hintText: _t('searchHint'),
+                    hintStyle: const TextStyle(color: kTextMuted),
+                    border: InputBorder.none, contentPadding: EdgeInsets.zero,
                   ),
-                  Row(children: [
-                    // ✅ Temporary toggle button
-                    IconButton(
-                      icon: Icon(
-                        _isTemporary ? Icons.timer : Icons.timer_outlined,
-                        color: _isTemporary ? Colors.orange : const Color(0xFF4F7EA6),
-                      ),
-                      tooltip: _isTemporary ? "Turn off temporary" : "Temporary chat",
-                      onPressed: _toggleTemporary,
-                    ),
-                    IconButton(
-                      icon: Icon(_isSearching ? Icons.close : Icons.search, color: const Color(0xFF4F7EA6)),
-                      onPressed: () {
-                        setState(() {
-                          _isSearching = !_isSearching;
-                          if (!_isSearching) { _searchController.clear(); _searchQuery = ""; _searchResults = []; }
-                        });
+                  onChanged: (val) { setState(() => _searchQuery = val); _performSearch(val); },
+                )
+                    : Row(children: [
+                  if (_isTemporary) ...[
+                    const Icon(Icons.timer, color: Colors.orange, size: 16),
+                    const SizedBox(width: 6),
+                    Text(_t('temporaryChat'), style: const TextStyle(color: Colors.orange, fontSize: 15, fontWeight: FontWeight.w600)),
+                  ] else ...[
+                    Text("Omega ", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: textColor)),
+                    const Text("AI", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: kCyan)),
+                  ],
+                ])),
+
+                // Action icons
+                Row(mainAxisSize: MainAxisSize.min, children: [
+                  if (!_isSearching && messages.isNotEmpty)
+                    IconButton(icon: const Icon(Icons.ios_share_rounded, color: kCyan, size: 20), onPressed: _showExportSheet),
+                  IconButton(
+                    icon: Icon(_isSearching ? Icons.close : Icons.search, color: kCyan, size: 20),
+                    onPressed: () {
+                      setState(() {
+                        _isSearching = !_isSearching;
+                        if (!_isSearching) { _searchController.clear(); _searchQuery = ""; _searchResults = []; }
+                      });
+                    },
+                  ),
+                  IconButton(
+                    icon: Icon(_isTemporary ? Icons.timer : Icons.timer_outlined,
+                        color: _isTemporary ? Colors.orange : kCyan, size: 20),
+                    onPressed: _toggleTemporary,
+                  ),
+                  if (!_isSearching)
+                    IconButton(icon: const Icon(Icons.add, color: kCyan, size: 22), onPressed: _startNewSession),
+                ]),
+              ]),
+            ),
+
+            // Temporary banner
+            if (_isTemporary)
+              Container(
+                margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                ),
+                child: Row(children: [
+                  const Icon(Icons.timer, color: Colors.orange, size: 15),
+                  const SizedBox(width: 8),
+                  Text(_t('tempChatHint'), style: const TextStyle(color: Colors.orange, fontSize: 12, fontWeight: FontWeight.w500)),
+                  const Spacer(),
+                  GestureDetector(onTap: _toggleTemporary, child: const Icon(Icons.close, color: Colors.orange, size: 15)),
+                ]),
+              ),
+
+            // Search result count
+            if (_isSearching && _searchQuery.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                child: Align(alignment: Alignment.centerLeft,
+                    child: Text(
+                      _searchResults.isEmpty ? _t('noResults')
+                          : "${_searchResults.length} result${_searchResults.length > 1 ? 's' : ''} found",
+                      style: const TextStyle(color: kTextSub, fontSize: 12),
+                    )),
+              ),
+
+            // ── MESSAGES / WELCOME ─────────────────────────────
+            Expanded(
+              child: _isSearching && _searchQuery.isNotEmpty
+                  ? (_searchResults.isEmpty
+                  ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                const Icon(Icons.search_off, size: 52, color: kTextMuted),
+                const SizedBox(height: 12),
+                Text(_t('noMessages'), style: const TextStyle(color: kTextSub, fontSize: 16)),
+                Text(_t('tryDifferent'), style: const TextStyle(color: kTextMuted, fontSize: 12)),
+              ]))
+                  : ListView.builder(
+                padding: const EdgeInsets.all(12),
+                itemCount: _searchResults.length,
+                itemBuilder: (context, index) {
+                  final result = _searchResults[index];
+                  final isMe = result['isMe'] as bool;
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: borderColor),
+                        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 4)]),
+                    child: ListTile(
+                      leading: CircleAvatar(radius: 17, backgroundColor: kCyan.withOpacity(0.12),
+                          child: Icon(isMe ? Icons.person : Icons.smart_toy, size: 17, color: kCyan)),
+                      title: Text(result['sessionTitle'], style: const TextStyle(fontSize: 11, color: kTextMuted)),
+                      subtitle: Padding(padding: const EdgeInsets.only(top: 4),
+                          child: _highlightText(result['text'], _searchQuery)),
+                      onTap: () {
+                        final session = sessions.firstWhere((s) => s['id'] == result['sessionId'], orElse: () => {});
+                        if (session.isNotEmpty) {
+                          _loadSessionFromSearch(session);
+                        }
                       },
                     ),
-                    if (!_isSearching && messages.isNotEmpty)
-                      IconButton(icon: const Icon(Icons.ios_share_rounded, color: Color(0xFF4F7EA6)), onPressed: _showExportSheet),
-                    if (!_isSearching)
-                      IconButton(icon: const Icon(Icons.add, color: Color(0xFF4F7EA6)), onPressed: _startNewSession),
-                  ]),
-                ],
-              ),
+                  );
+                },
+              ))
 
-              // ✅ Temporary mode banner
-              if (_isTemporary)
-                Container(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.orange.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                  : messages.isEmpty
+              // ── WELCOME SCREEN (exactly like website) ─────
+                  ? SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Column(children: [
+                  const SizedBox(height: 60),
+
+                  // "Welcome to Omega AI"
+                  Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                    Text("${_t('howCanIHelp')} ", style: TextStyle(
+                        fontSize: 26, fontWeight: FontWeight.w700, color: textColor)),
+                    const Text("Omega AI", style: TextStyle(
+                        fontSize: 26, fontWeight: FontWeight.w700, color: kCyan)),
+                  ]),
+                  const SizedBox(height: 10),
+                  Text(_t('subTitle'), textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 14, color: kTextSub, height: 1.5)),
+
+                  const SizedBox(height: 44),
+
+                  // 2×2 quick-action cards (exactly like website)
+                  GridView.count(
+                    crossAxisCount: 2,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisSpacing: 14,
+                    mainAxisSpacing: 14,
+                    childAspectRatio: 2.4,
+                    children: _quickCards.map((card) => GestureDetector(
+                      onTap: () {
+                        messageController.text = card['prompt'] as String;
+                      },
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: isDark ? kDarkCard : kCardBg,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: isDark ? kDarkBorder : kCardBorder),
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        child: Row(children: [
+                          Container(
+                            width: 32, height: 32,
+                            decoration: BoxDecoration(
+                              color: kCyan.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(card['icon'] as IconData, color: kCyan, size: 17),
+                          ),
+                          const SizedBox(width: 10),
+                          Flexible(child: Text(card['label'] as String,
+                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500,
+                                  color: isDark ? Colors.white : kTextPrimary), maxLines: 2)),
+                        ]),
+                      ),
+                    )).toList(),
                   ),
+                  const SizedBox(height: 40),
+                ]),
+              )
+
+              // ── CHAT MESSAGES ─────────────────────────
+                  : ListView.builder(
+                controller: _scrollController,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                itemCount: messages.length,
+                itemBuilder: (context, index) =>
+                    ChatBubble(message: messages[index], isNew: index == messages.length - 1),
+              ),
+            ),
+
+            // ── INPUT BAR (website style) ──────────────────────
+            if (!_isSearching) ...[
+              // Image preview
+              if (selectedImage != null)
+                Container(
+                  margin: const EdgeInsets.fromLTRB(12, 0, 12, 6),
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: borderColor)),
                   child: Row(children: [
-                    const Icon(Icons.timer, color: Colors.orange, size: 16),
-                    const SizedBox(width: 8),
-                    Text(_t('tempChatHint'),
-                        style: const TextStyle(color: Colors.orange, fontSize: 12, fontWeight: FontWeight.w500)),
+                    ClipRRect(borderRadius: BorderRadius.circular(8),
+                        child: Image.file(File(selectedImage!.path), width: 56, height: 56, fit: BoxFit.cover)),
+                    const SizedBox(width: 10),
+                    Text(_t('imageSelected'), style: TextStyle(color: textColor, fontSize: 13)),
                     const Spacer(),
-                    GestureDetector(
-                      onTap: _toggleTemporary,
-                      child: const Icon(Icons.close, color: Colors.orange, size: 16),
-                    ),
+                    IconButton(icon: const Icon(Icons.close, color: Colors.red, size: 18),
+                        onPressed: () => setState(() => selectedImage = null)),
                   ]),
                 ),
 
-              if (_isSearching && _searchQuery.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Align(alignment: Alignment.centerLeft,
-                      child: Text(
-                        _searchResults.isEmpty ? _t('noResults') : "${_searchResults.length} result${_searchResults.length > 1 ? 's' : ''} found",
-                        style: TextStyle(color: subTextColor, fontSize: 12),
-                      )),
-                ),
-
-              const SizedBox(height: 4),
-
-              Expanded(
-                child: _isSearching && _searchQuery.isNotEmpty
-                    ? _searchResults.isEmpty
-                    ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  Icon(Icons.search_off, size: 60, color: subTextColor), const SizedBox(height: 12),
-                  Text(_t('noMessages'), style: TextStyle(color: subTextColor, fontSize: 16)),
-                  Text(_t('tryDifferent'), style: TextStyle(color: subTextColor, fontSize: 12)),
-                ]))
-                    : ListView.builder(
-                  itemCount: _searchResults.length,
-                  itemBuilder: (context, index) {
-                    final result = _searchResults[index];
-                    final isMe = result['isMe'] as bool;
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(12),
-                          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 4)]),
-                      child: ListTile(
-                        leading: CircleAvatar(radius: 18,
-                            backgroundColor: isMe ? const Color(0xFF4F7EA6) : const Color(0xFF4F7EA6).withOpacity(0.15),
-                            child: Icon(isMe ? Icons.person : Icons.smart_toy, size: 18, color: isMe ? Colors.white : const Color(0xFF4F7EA6))),
-                        title: Text(result['sessionTitle'], style: TextStyle(fontSize: 11, color: subTextColor)),
-                        subtitle: Padding(padding: const EdgeInsets.only(top: 4), child: _highlightText(result['text'], _searchQuery)),
-                        onTap: () {
-                          final session = sessions.firstWhere((s) => s['id'] == result['sessionId'], orElse: () => {});
-                          if (session.isNotEmpty) {
-                            setState(() { _isSearching = false; _searchController.clear(); _searchQuery = ""; _searchResults = []; });
-                            _loadSession(session);
-                          }
-                        },
-                      ),
-                    );
-                  },
-                )
-                    : messages.isEmpty
-                    ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  Container(width: 80, height: 80,
-                      decoration: BoxDecoration(
-                        color: _isTemporary ? Colors.orange.withOpacity(0.1) : const Color(0xFF4F7EA6).withOpacity(0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Center(child: Icon(
-                        _isTemporary ? Icons.timer : null,
-                        color: Colors.orange, size: 36,
-                        semanticLabel: _isTemporary ? null : "Ω",
-                      ) == const Icon(null) ? Text("Ω", style: TextStyle(fontSize: 36, color: _isTemporary ? Colors.orange : const Color(0xFF4F7EA6), fontWeight: FontWeight.bold)) :
-                      _isTemporary ? const Icon(Icons.timer, color: Colors.orange, size: 36) :
-                      const Text("Ω", style: TextStyle(fontSize: 36, color: Color(0xFF4F7EA6), fontWeight: FontWeight.bold)))),
-                  const SizedBox(height: 16),
-                  Text(_isTemporary ? _t('temporaryChat') : _t('howCanIHelp'),
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600,
-                          color: _isTemporary ? Colors.orange : textColor)),
-                  const SizedBox(height: 8),
-                  Text(_isTemporary ? _t('tempChatHint') : _t('askAnything'),
-                      style: TextStyle(fontSize: 14, color: _isTemporary ? Colors.orange.withOpacity(0.7) : subTextColor)),
-                ]))
-                    : ListView.builder(
-                  controller: _scrollController,
-                  itemCount: messages.length,
-                  itemBuilder: (context, index) => ChatBubble(message: messages[index], isNew: index == messages.length - 1),
-                ),
-              ),
-
-              if (!_isSearching) ...[
-                if (selectedImage != null)
-                  Container(
-                    margin: const EdgeInsets.only(bottom: 6), padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(12)),
-                    child: Row(children: [
-                      ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.file(File(selectedImage!.path), width: 60, height: 60, fit: BoxFit.cover)),
-                      const SizedBox(width: 10),
-                      Text(_t('imageSelected'), style: TextStyle(color: textColor)),
-                      const Spacer(),
-                      IconButton(icon: const Icon(Icons.close, color: Colors.red), onPressed: () => setState(() => selectedImage = null)),
-                    ]),
-                  ),
-                if (selectedFile != null)
-                  Container(
-                    margin: const EdgeInsets.only(bottom: 6), padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(12)),
-                    child: Row(children: [
-                      const Icon(Icons.insert_drive_file, color: Color(0xFF4F7EA6), size: 40), const SizedBox(width: 10),
-                      Expanded(child: Text(selectedFile!.name, overflow: TextOverflow.ellipsis, style: TextStyle(color: textColor))),
-                      IconButton(icon: const Icon(Icons.close, color: Colors.red), onPressed: () => setState(() => selectedFile = null)),
-                    ]),
-                  ),
+              // File preview
+              if (selectedFile != null)
                 Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  decoration: BoxDecoration(
-                    color: cardColor,
-                    borderRadius: BorderRadius.circular(30),
-                    border: _isTemporary ? Border.all(color: Colors.orange.withOpacity(0.4), width: 1.5) : null,
-                  ),
+                  margin: const EdgeInsets.fromLTRB(12, 0, 12, 6),
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: borderColor)),
                   child: Row(children: [
-                    IconButton(icon: Icon(Icons.add, color: textColor), onPressed: _showAttachmentSheet),
-                    Expanded(child: TextField(
-                      controller: messageController, style: TextStyle(color: textColor),
-                      decoration: InputDecoration(
-                        hintText: _isListening ? _t('listening') : _t('askAnything'),
-                        hintStyle: TextStyle(color: _isListening ? Colors.red : subTextColor),
-                        border: InputBorder.none,
-                      ),
-                      onSubmitted: (_) => _sendMessage(),
-                    )),
-                    IconButton(icon: Icon(_isListening ? Icons.mic : Icons.mic_none, color: _isListening ? Colors.red : const Color(0xFF4F7EA6)), onPressed: _startListening),
-                    IconButton(icon: const Icon(Icons.send, color: Color(0xFF4F7EA6)), onPressed: _sendMessage),
+                    const Icon(Icons.insert_drive_file, color: kCyan, size: 36),
+                    const SizedBox(width: 10),
+                    Expanded(child: Text(selectedFile!.name, overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: textColor, fontSize: 13))),
+                    IconButton(icon: const Icon(Icons.close, color: Colors.red, size: 18),
+                        onPressed: () => setState(() => selectedFile = null)),
                   ]),
                 ),
-              ],
-            ]),
-          ),
+
+              // Input row — matches website exactly
+              Container(
+                margin: const EdgeInsets.fromLTRB(12, 4, 12, 14),
+                decoration: BoxDecoration(
+                  color: cardColor,
+                  borderRadius: BorderRadius.circular(28),
+                  border: Border.all(
+                    color: _isTemporary
+                        ? Colors.orange.withOpacity(0.5)
+                        : (isDark ? kDarkBorder : kBorderLight),
+                    width: 1.2,
+                  ),
+                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(isDark ? 0.15 : 0.04), blurRadius: 8, offset: const Offset(0, 2))],
+                ),
+                child: Row(children: [
+                  // + attach button (website uses "+" inside rounded square)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 4),
+                    child: Container(
+                      width: 36, height: 36,
+                      decoration: BoxDecoration(color: kCyan, borderRadius: BorderRadius.circular(10)),
+                      child: IconButton(
+                        padding: EdgeInsets.zero,
+                        icon: const Icon(Icons.add, color: Colors.white, size: 20),
+                        onPressed: _showAttachmentSheet,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+
+                  // Text field
+                  Expanded(child: TextField(
+                    controller: messageController,
+                    style: TextStyle(color: textColor, fontSize: 14),
+                    maxLines: 4, minLines: 1,
+                    decoration: InputDecoration(
+                      hintText: _isListening ? _t('listening') : _t('askAnything'),
+                      hintStyle: TextStyle(color: _isListening ? Colors.red : kTextMuted, fontSize: 14),
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    onSubmitted: (_) => _sendMessage(),
+                  )),
+
+                  // Mic
+                  IconButton(
+                    icon: Icon(_isListening ? Icons.mic : Icons.mic_none,
+                        color: _isListening ? Colors.red : kTextSub, size: 22),
+                    onPressed: _startListening,
+                  ),
+
+                  // Send button (cyan filled circle — website style)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: GestureDetector(
+                      onTap: _sendMessage,
+                      child: Container(
+                        width: 38, height: 38,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(colors: [kCyanDark, kCyanLight]),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(Icons.send_rounded, color: Colors.white, size: 18),
+                      ),
+                    ),
+                  ),
+                ]),
+              ),
+            ],
+          ]),
         ),
       ),
     );

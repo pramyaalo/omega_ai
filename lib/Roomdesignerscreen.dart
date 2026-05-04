@@ -180,7 +180,7 @@ class _RoomDesignerScreenState extends State<RoomDesignerScreen>
 
     try {
       _channel?.sink.close(status.goingAway);
-      _channel = WebSocketChannel.connect(Uri.parse('ws://192.168.1.4:8000/ws/chat/'));
+      _channel = WebSocketChannel.connect(Uri.parse('wss://silo-churn-worst.ngrok-free.dev/ws/chat/'));
 
       _channel!.stream.listen((data) {
         final decoded = jsonDecode(data);

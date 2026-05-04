@@ -8,7 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'HomeScreen.dart';
 import 'LoginScreen.dart';
 import 'SignupScreen.dart';
-import 'OnboardingScreen.dart'; // ✅
+import 'OnboardingScreen.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -37,14 +37,14 @@ Future<void> main() async {
 
   final prefs = await SharedPreferences.getInstance();
   final isDark = prefs.getBool('dark_mode') ?? false;
-  final onboardingDone = prefs.getBool('onboarding_done') ?? false; // ✅
+  final onboardingDone = prefs.getBool('onboarding_done') ?? false;
 
   runApp(OmegaApp(isDark: isDark, onboardingDone: onboardingDone));
 }
 
 class OmegaApp extends StatefulWidget {
   final bool isDark;
-  final bool onboardingDone; // ✅
+  final bool onboardingDone;
   const OmegaApp({super.key, required this.isDark, required this.onboardingDone});
 
   static _OmegaAppState? of(BuildContext context) =>
@@ -56,13 +56,13 @@ class OmegaApp extends StatefulWidget {
 
 class _OmegaAppState extends State<OmegaApp> {
   late bool isDark;
-  late bool onboardingDone; // ✅
+  late bool onboardingDone;
 
   @override
   void initState() {
     super.initState();
     isDark = widget.isDark;
-    onboardingDone = widget.onboardingDone; // ✅
+    onboardingDone = widget.onboardingDone;
   }
 
   void toggleDark(bool val) async {
@@ -79,52 +79,59 @@ class _OmegaAppState extends State<OmegaApp> {
 
       theme: ThemeData(
         brightness: Brightness.light,
-        scaffoldBackgroundColor: const Color(0xFFAACBE5),
+        scaffoldBackgroundColor: const Color(0xFFEBF5FB),
         cardColor: Colors.white,
-        colorSchemeSeed: const Color(0xFF4F7EA6),
+        colorSchemeSeed: const Color(0xFF1DA1D6),
         textTheme: const TextTheme(
-          bodyMedium: TextStyle(color: Colors.black),
-          bodyLarge: TextStyle(color: Colors.black),
+          bodyMedium: TextStyle(color: Color(0xFF1A1A2E)),
+          bodyLarge: TextStyle(color: Color(0xFF1A1A2E)),
         ),
         inputDecorationTheme: const InputDecorationTheme(
           fillColor: Colors.white,
         ),
         drawerTheme: const DrawerThemeData(
-          backgroundColor: Color(0xFFEAF3FB),
+          backgroundColor: Color(0xFFF0F9FF),
         ),
-      ),
-
-      darkTheme: ThemeData(
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF121212),
-        cardColor: const Color(0xFF1E1E1E),
-        colorSchemeSeed: const Color(0xFF4F7EA6),
-        textTheme: const TextTheme(
-          bodyMedium: TextStyle(color: Colors.white),
-          bodyLarge: TextStyle(color: Colors.white),
-        ),
-        inputDecorationTheme: InputDecorationTheme(
-          fillColor: const Color(0xFF1E1E1E),
-          hintStyle: const TextStyle(color: Colors.white38),
-        ),
-        drawerTheme: const DrawerThemeData(
-          backgroundColor: Color(0xFF1A1A1A),
-        ),
-        dividerColor: Colors.white12,
-        iconTheme: const IconThemeData(color: Colors.white),
-        listTileTheme: const ListTileThemeData(
-          textColor: Colors.white,
-          iconColor: Color(0xFF4F7EA6),
-        ),
+        dividerColor: const Color(0xFFCDE8F8),
+        iconTheme: const IconThemeData(color: Color(0xFF1DA1D6)),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF4F7EA6),
+            backgroundColor: const Color(0xFF1DA1D6),
             foregroundColor: Colors.white,
           ),
         ),
       ),
 
-      // ✅ Onboarding check — first install la OnboardingScreen, apram OmegaHome
+      darkTheme: ThemeData(
+        brightness: Brightness.dark,
+        scaffoldBackgroundColor: const Color(0xFF0D1B2A),
+        cardColor: const Color(0xFF1A2744),
+        colorSchemeSeed: const Color(0xFF1DA1D6),
+        textTheme: const TextTheme(
+          bodyMedium: TextStyle(color: Colors.white),
+          bodyLarge: TextStyle(color: Colors.white),
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          fillColor: const Color(0xFF1A2744),
+          hintStyle: const TextStyle(color: Colors.white38),
+        ),
+        drawerTheme: const DrawerThemeData(
+          backgroundColor: Color(0xFF112035),
+        ),
+        dividerColor: Colors.white12,
+        iconTheme: const IconThemeData(color: Color(0xFF1DA1D6)),
+        listTileTheme: const ListTileThemeData(
+          textColor: Colors.white,
+          iconColor: Color(0xFF1DA1D6),
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF1DA1D6),
+            foregroundColor: Colors.white,
+          ),
+        ),
+      ),
+
       home: onboardingDone ? const OmegaHome() : const OnboardingScreen(),
     );
   }
@@ -136,107 +143,198 @@ class OmegaHome extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFAACBE5);
-    final textColor = isDark ? Colors.white : Colors.black;
-    final subTextColor = isDark ? Colors.white38 : Colors.black38;
+    final textColor = isDark ? Colors.white : const Color(0xFF1A1A2E);
+    final subTextColor = isDark ? Colors.white38 : const Color(0xFF6B8CAE);
+
+    // ✅ Gradient colors — web screenshot-மாதிரி exact
+    final gradientTop = isDark
+        ? const Color(0xFF0D1B2A)
+        : const Color(0xFFEBF5FB); // light blue-white top
+    final gradientBottom = isDark
+        ? const Color(0xFF0A2540)
+        : const Color(0xFFC5E3F5); // deeper blue bottom
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle(
-        statusBarColor: bgColor,
+        statusBarColor: Colors.transparent,
         statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
-        systemNavigationBarColor: bgColor,
+        systemNavigationBarColor: gradientBottom,
       ),
 
-      // ✅ Firebase auth state check
       child: StreamBuilder<User?>(
         stream: FirebaseAuth.instance.authStateChanges(),
         builder: (context, snapshot) {
 
-          // Loading
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Scaffold(
-              backgroundColor: bgColor,
+              backgroundColor: gradientTop,
               body: const Center(
-                child: CircularProgressIndicator(color: Color(0xFF4F7EA6)),
+                child: CircularProgressIndicator(color: Color(0xFF1DA1D6)),
               ),
             );
           }
 
-          // ✅ Already logged in — direct HomeScreen
           if (snapshot.hasData && snapshot.data != null) {
             return HomeScreen(isGuest: false);
           }
 
-          // Not logged in — show welcome screen
           return Scaffold(
-            backgroundColor: bgColor,
+            backgroundColor: Colors.transparent,
             body: Container(
               width: double.infinity,
               height: double.infinity,
-              color: bgColor,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+              // ✅ Web-மாதிரி top-to-bottom gradient
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [gradientTop, gradientBottom],
+                  stops: const [0.0, 1.0],
+                ),
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
 
-                  // ── LOGO ──────────────────────────────
-                  Padding(
-                    padding: const EdgeInsets.only(top: 40, left: 20),
+                  // ── WHITE NAVBAR (web-மாதிரி) ──────────────
+                  Container(
+                    width: double.infinity,
+                    color: isDark ? const Color(0xFF0D1B2A) : Colors.white,
+                    padding: EdgeInsets.only(
+                      top: MediaQuery.of(context).padding.top + 8,
+                      bottom: 12,
+                      left: 20,
+                      right: 20,
+                    ),
                     child: Row(
                       children: [
-                        Text("Ω",
-                            style: TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
-                              color: textColor,
-                            )),
-                        const SizedBox(width: 6),
-                        Text("OMEGA AI",
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w600,
-                              color: textColor,
-                            )),
+                        // Cyan square icon
+                        Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF1B9ED4),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Center(
+                            child: Text(
+                              "Ω",
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        // "Omega AI" cyan text
+                        const Text(
+                          "Omega AI",
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF1B9ED4),
+                          ),
+                        ),
                       ],
                     ),
                   ),
 
-                  // ── CENTER CONTENT ────────────────────
+                  // ── MAIN CONTENT ───────────────────────────
                   Expanded(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      padding: const EdgeInsets.symmetric(horizontal: 40),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text("Think smarter.",
-                              style: TextStyle(
-                                fontSize: 25,
-                                color: textColor,
-                                fontWeight: FontWeight.w900,
-                              )),
-                          const SizedBox(height: 4),
-                          Text("Work faster.",
-                              style: TextStyle(
-                                fontSize: 25,
-                                color: textColor,
-                                fontWeight: FontWeight.w900,
-                              )),
-                          const SizedBox(height: 16),
+
+                          // Advanced AI Model badge
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: isDark
+                                  ? const Color(0xFF1A2744)
+                                  : Colors.white,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: const Color(0xFF1DA1D6).withOpacity(0.35),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFF1DA1D6),
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                const Text(
+                                  "Advanced AI Model",
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Color(0xFF1DA1D6),
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          const SizedBox(height: 24),
+
+                          // "Meet Omega AI" headline
+                          RichText(
+                            text: TextSpan(
+                              children: [
+                                TextSpan(
+                                  text: "Meet ",
+                                  style: TextStyle(
+                                    fontSize: 36,
+                                    fontWeight: FontWeight.w900,
+                                    color: textColor,
+                                  ),
+                                ),
+                                const TextSpan(
+                                  text: "Omega AI",
+                                  style: TextStyle(
+                                    fontSize: 36,
+                                    fontWeight: FontWeight.w900,
+                                    color: Color(0xFF1DA1D6),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          const SizedBox(height: 12),
+
                           Text(
-                            "Collaborate, analyze and build faster - all in one intelligent AI workspace.",
-                            style: TextStyle(fontSize: 14, color: subTextColor),
+                            "Your intelligent assistant for everything - from writing code to analyzing documents",
+                            style: TextStyle(
+                              fontSize: 15,
+                              color: subTextColor,
+                              height: 1.5,
+                            ),
                           ),
 
                           SizedBox(height: MediaQuery.of(context).size.height * 0.06),
 
-                          // Get Started — Guest mode
+                          // ── Start with Omega AI button ──────
                           SizedBox(
                             width: double.infinity,
-                            height: 50,
+                            height: 52,
                             child: ElevatedButton(
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF3F6F9C),
+                                backgroundColor: const Color(0xFF2B9ED4),
+                                foregroundColor: Colors.white,
+                                elevation: 0,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
@@ -244,60 +342,76 @@ class OmegaHome extends StatelessWidget {
                               onPressed: () => Navigator.pushReplacement(
                                 context,
                                 MaterialPageRoute(
-                                    builder: (_) => const HomeScreen(isGuest: true)),
+                                    builder: (_) =>
+                                    const HomeScreen(isGuest: true)),
                               ),
-                              child: const Text("Get started",
-                                  style: TextStyle(fontSize: 16, color: Colors.white)),
+                              child: const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    "Start with Omega AI",
+                                    style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600),
+                                  ),
+                                  SizedBox(width: 8),
+                                  Icon(Icons.arrow_forward, size: 18),
+                                ],
+                              ),
                             ),
                           ),
 
                           SizedBox(height: MediaQuery.of(context).size.height * 0.02),
 
-                          // Login button
+                          // ── Login button ────────────────────
                           SizedBox(
                             width: double.infinity,
-                            height: 50,
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF4F7EA6),
+                            height: 52,
+                            child: OutlinedButton(
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: const Color(0xFF1DA1D6),
+                                side: const BorderSide(
+                                    color: Color(0xFF1DA1D6), width: 1.5),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                               ),
                               onPressed: () => Navigator.push(
                                 context,
-                                MaterialPageRoute(builder: (_) => const LoginScreen()),
+                                MaterialPageRoute(
+                                    builder: (_) => const LoginScreen()),
                               ),
-                              child: const Text("Login",
-                                  style: TextStyle(fontSize: 16, color: Colors.white)),
+                              child: const Text(
+                                "Login",
+                                style: TextStyle(
+                                    fontSize: 16, fontWeight: FontWeight.w600),
+                              ),
                             ),
                           ),
 
                           SizedBox(height: MediaQuery.of(context).size.height * 0.02),
 
-                          // Sign Up
+                          // ── Create account button ───────────
                           SizedBox(
                             width: double.infinity,
-                            height: 50,
+                            height: 52,
                             child: TextButton(
                               onPressed: () => Navigator.push(
                                 context,
-                                MaterialPageRoute(builder: (_) => const SignupScreen()),
+                                MaterialPageRoute(
+                                    builder: (_) => const SignupScreen()),
                               ),
                               style: TextButton.styleFrom(
+                                foregroundColor: subTextColor,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
-                                  side: const BorderSide(
-                                    color: Color(0xFF3F6F9C),
-                                    width: 1.5,
-                                  ),
                                 ),
                               ),
-                              child: const Text("Sign Up",
-                                  style: TextStyle(
-                                    fontSize: 15,
-                                    color: Color(0xFF3F6F9C),
-                                  )),
+                              child: Text(
+                                "Create an account",
+                                style: TextStyle(
+                                    fontSize: 15, color: subTextColor),
+                              ),
                             ),
                           ),
                         ],
@@ -305,9 +419,9 @@ class OmegaHome extends StatelessWidget {
                     ),
                   ),
 
-                  // ── FOOTER ───────────────────────────
+                  // ── FOOTER ────────────────────────────────
                   Padding(
-                    padding: const EdgeInsets.only(bottom: 20),
+                    padding: const EdgeInsets.only(bottom: 24),
                     child: Center(
                       child: Text(
                         "No credit card required. Privacy Policy",
