@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class ChatBubble extends StatefulWidget {
@@ -18,7 +19,9 @@ class ChatBubble extends StatefulWidget {
 class _ChatBubbleState extends State<ChatBubble>
     with SingleTickerProviderStateMixin {
   late AnimationController _dotController;
-  bool _copied = false;
+  bool _copied    = false;
+  bool _isSpeaking = false;
+  final FlutterTts _tts = FlutterTts();
 
   static const kCyan       = Color(0xFF1BA8D4);
   static const kCyanDark   = Color(0xFF1890B8);
@@ -32,10 +35,25 @@ class _ChatBubbleState extends State<ChatBubble>
     _dotController = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 900))
       ..repeat();
+    _initTts();
+  }
+
+  Future<void> _initTts() async {
+    await _tts.setLanguage("en-US");
+    await _tts.setSpeechRate(0.5);
+    await _tts.setVolume(1.0);
+    await _tts.setPitch(1.0);
+    _tts.setCompletionHandler(() {
+      if (mounted) setState(() => _isSpeaking = false);
+    });
+    _tts.setErrorHandler((msg) {
+      if (mounted) setState(() => _isSpeaking = false);
+    });
   }
 
   @override
   void dispose() {
+    _tts.stop();
     _dotController.dispose();
     super.dispose();
   }
@@ -46,6 +64,25 @@ class _ChatBubbleState extends State<ChatBubble>
     Future.delayed(const Duration(seconds: 2), () {
       if (mounted) setState(() => _copied = false);
     });
+  }
+
+  // ── Text-to-Speech ────────────────────────────────────────────────────────────
+  Future<void> _speakText(String text) async {
+    if (_isSpeaking) {
+      await _tts.stop();
+      setState(() => _isSpeaking = false);
+      return;
+    }
+    // Strip markdown symbols before speaking
+    final clean = text
+        .replaceAll(RegExp(r'\*\*|__|\*|_|`{1,3}|#{1,6}\s?'), '')
+        .replaceAll(RegExp(r'\[([^\]]+)\]\([^\)]+\)'), r'$1')
+        .replaceAll(RegExp(r'\n{2,}'), '. ')
+        .replaceAll('\n', ' ')
+        .trim();
+
+    setState(() => _isSpeaking = true);
+    await _tts.speak(clean);
   }
 
   @override
@@ -315,24 +352,73 @@ class _ChatBubbleState extends State<ChatBubble>
   // ── Open URL in external browser ─────────────────────────────────────────────
   static Future<void> _openUrl(BuildContext context, String rawUrl) async {
     try {
-      String cleaned = rawUrl.trim().replaceAll(RegExp(r'\s+'), '');
-      if (!cleaned.startsWith('http://') && !cleaned.startsWith('https://')) {
-        cleaned = 'https://$cleaned';
-      }
+      // Clean the URL — strip emoji, spaces, trailing punctuation
+      String cleaned = rawUrl.trim();
+      cleaned = cleaned.replaceAll(RegExp(r'^[🔗\s]+'), ''); // remove 🔗 prefix
+      cleaned = cleaned.replaceAll(RegExp(r'[\s]+'), '');     // remove spaces
+      if (!cleaned.startsWith('http')) cleaned = 'https://$cleaned';
+
       final uri = Uri.parse(cleaned);
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
+
+      // Try externalApplication first (opens Chrome / default browser)
+      bool launched = false;
+      try {
+        launched = await launchUrl(
+          uri,
+          mode: LaunchMode.externalApplication,
+        );
+      } catch (_) {}
+
+      // Fallback 1: platformDefault
+      if (!launched) {
+        try {
+          launched = await launchUrl(
+            uri,
+            mode: LaunchMode.platformDefault,
+          );
+        } catch (_) {}
+      }
+
+      // Fallback 2: inAppWebView
+      if (!launched) {
+        try {
+          launched = await launchUrl(
+            uri,
+            mode: LaunchMode.inAppWebView,
+          );
+        } catch (_) {}
+      }
+
+      if (!launched && context.mounted) {
+        // Last resort — copy to clipboard with message
+        await Clipboard.setData(ClipboardData(text: cleaned));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Row(children: [
+              Icon(Icons.info_outline, color: Colors.white, size: 16),
+              SizedBox(width: 8),
+              Expanded(child: Text("Link copied! Paste in your browser.")),
+            ]),
+            backgroundColor: Colors.orange,
+            duration: const Duration(seconds: 3),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      }
     } catch (e) {
-      await Clipboard.setData(ClipboardData(text: rawUrl));
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Link copied! Open in browser manually"),
-            backgroundColor: Colors.orange,
+          SnackBar(
+            content: Text("Could not open link: $e"),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
           ),
         );
       }
     }
   }
+
   // ── Link tap popup ────────────────────────────────────────────────────────────
   void _showLinkPopup(BuildContext context, String url) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -501,6 +587,72 @@ class _ChatBubbleState extends State<ChatBubble>
                   Text("Copied!", style: TextStyle(color: Colors.green, fontSize: 11)),
                 ]),
               ),
+
+            // ── Action buttons row ──────────────────────────────
+            const SizedBox(height: 8),
+            Row(children: [
+              // 🔊 Speak / Stop button
+              GestureDetector(
+                onTap: () => _speakText(text),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: _isSpeaking
+                        ? kCyan.withOpacity(0.15)
+                        : (isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.04)),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: _isSpeaking ? kCyan.withOpacity(0.5) : Colors.transparent,
+                    ),
+                  ),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(
+                      _isSpeaking ? Icons.stop_circle_outlined : Icons.volume_up_rounded,
+                      size: 14,
+                      color: _isSpeaking ? kCyan : (isDark ? Colors.white54 : Colors.black45),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      _isSpeaking ? "Stop" : "Listen",
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: _isSpeaking ? kCyan : (isDark ? Colors.white54 : Colors.black45),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ]),
+                ),
+              ),
+              const SizedBox(width: 8),
+              // 📋 Copy button
+              GestureDetector(
+                onTap: _copyText,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.04),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(
+                      _copied ? Icons.check : Icons.copy_rounded,
+                      size: 14,
+                      color: _copied ? Colors.green : (isDark ? Colors.white54 : Colors.black45),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      _copied ? "Copied!" : "Copy",
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: _copied ? Colors.green : (isDark ? Colors.white54 : Colors.black45),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ]),
+                ),
+              ),
+            ]),
           ],
         ),
       ),

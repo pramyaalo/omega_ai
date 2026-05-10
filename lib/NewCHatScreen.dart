@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'DocumentAnalyzerScreen.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:web_socket_channel/status.dart' as status;
 import 'package:image_picker/image_picker.dart';
@@ -69,10 +70,12 @@ class _NewChatScreenState extends State<NewChatScreen> {
 
   // ── Quick-action cards (website's 4 cards) ───────────────────
   final List<Map<String, dynamic>> _quickCards = [
-    {'icon': Icons.edit_document,       'label': 'Edit & return file',    'prompt': 'Edit this file: '},
-    {'icon': Icons.code_rounded,        'label': 'Write or fix code',     'prompt': 'Write code for: '},
-    {'icon': Icons.summarize_rounded,   'label': 'Analyze & summarize',   'prompt': 'Analyze and summarize: '},
-    {'icon': Icons.image_outlined,      'label': 'Generate an image',     'prompt': 'Generate an image of: '},
+    {'icon': Icons.edit_document,       'label': 'Edit & return file',    'prompt': 'Edit this file: ',            'route': null},
+    {'icon': Icons.code_rounded,        'label': 'Write or fix code',     'prompt': 'Write code for: ',            'route': null},
+    {'icon': Icons.summarize_rounded,   'label': 'Analyze & summarize',   'prompt': 'Analyze and summarize: ',     'route': null},
+    {'icon': Icons.image_outlined,      'label': 'Generate an image',     'prompt': 'Generate an image of: ',      'route': null},
+    {'icon': Icons.description_rounded, 'label': 'Document Analyzer',     'prompt': '',                            'route': 'doc_analyzer'},
+    {'icon': Icons.translate_rounded,   'label': 'Translate text',        'prompt': 'Translate this to English: ', 'route': null},
   ];
 
   // ── i18n ─────────────────────────────────────────────────────
@@ -654,15 +657,16 @@ class _NewChatScreenState extends State<NewChatScreen> {
             crossAxisCount: 3, shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),
             crossAxisSpacing: 10, mainAxisSpacing: 10, childAspectRatio: 1.1,
             children: [
-              _quickActionTile(Icons.image_search_rounded,    "Create Image",  const Color(0xFFE94560), () { Navigator.pop(context); messageController.text = "Create an image of "; }),
-              _quickActionTile(Icons.psychology_rounded,      "Deep Think",    const Color(0xFF533483), () { Navigator.pop(context); messageController.text = "Think deeply and explain: "; }),
-              _quickActionTile(Icons.travel_explore_rounded,  "Web Search",    kCyanDark,               () { Navigator.pop(context); messageController.text = "Search and tell me about: "; }),
-              _quickActionTile(Icons.shopping_bag_rounded,    "Shopping",      const Color(0xFF2B9348), () { Navigator.pop(context); messageController.text = "Best options to buy: "; }),
-              _quickActionTile(Icons.science_rounded,         "Research",      const Color(0xFFB5451B), () { Navigator.pop(context); messageController.text = "Research and summarize: "; }),
-              _quickActionTile(Icons.school_rounded,          "Study",         const Color(0xFF1B4332), () { Navigator.pop(context); messageController.text = "Teach me about: "; }),
-              _quickActionTile(Icons.explore_rounded,         "Explore",       const Color(0xFF2D6A4F), () { Navigator.pop(context); messageController.text = "Explore the topic: "; }),
-              _quickActionTile(Icons.calculate_rounded,       "Math",          const Color(0xFF6A0572), () { Navigator.pop(context); messageController.text = "Solve this: "; }),
-              _quickActionTile(Icons.code_rounded,            "Code",          const Color(0xFF1A1A4E), () { Navigator.pop(context); messageController.text = "Write code for: "; }),
+              _quickActionTile(Icons.image_search_rounded,    "Create Image",      const Color(0xFFE94560), () { Navigator.pop(context); messageController.text = "Create an image of "; }),
+              _quickActionTile(Icons.psychology_rounded,      "Deep Think",        const Color(0xFF533483), () { Navigator.pop(context); messageController.text = "Think deeply and explain: "; }),
+              _quickActionTile(Icons.travel_explore_rounded,  "Web Search",        kCyanDark,               () { Navigator.pop(context); messageController.text = "Search and tell me about: "; }),
+              _quickActionTile(Icons.description_rounded,     "Doc Analyzer",      kCyan,                   () { Navigator.pop(context); Navigator.push(context, MaterialPageRoute(builder: (_) => const DocumentAnalyzerScreen())); }),
+              _quickActionTile(Icons.shopping_bag_rounded,    "Shopping",          const Color(0xFF2B9348), () { Navigator.pop(context); messageController.text = "Best options to buy: "; }),
+              _quickActionTile(Icons.science_rounded,         "Research",          const Color(0xFFB5451B), () { Navigator.pop(context); messageController.text = "Research and summarize: "; }),
+              _quickActionTile(Icons.school_rounded,          "Study",             const Color(0xFF1B4332), () { Navigator.pop(context); messageController.text = "Teach me about: "; }),
+              _quickActionTile(Icons.explore_rounded,         "Explore",           const Color(0xFF2D6A4F), () { Navigator.pop(context); messageController.text = "Explore the topic: "; }),
+              _quickActionTile(Icons.calculate_rounded,       "Math",              const Color(0xFF6A0572), () { Navigator.pop(context); messageController.text = "Solve this: "; }),
+              _quickActionTile(Icons.code_rounded,            "Code",              const Color(0xFF1A1A4E), () { Navigator.pop(context); messageController.text = "Write code for: "; }),
             ],
           ),
         ]),
@@ -935,7 +939,7 @@ class _NewChatScreenState extends State<NewChatScreen> {
                     const SizedBox(width: 6),
                     Text(_t('temporaryChat'), style: const TextStyle(color: Colors.orange, fontSize: 15, fontWeight: FontWeight.w600)),
                   ] else ...[
-                    Text("Omega ", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: textColor)),
+                    const Text("Omega ", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: kCyan)),
                     const Text("AI", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: kCyan)),
                   ],
                 ])),
@@ -1063,7 +1067,12 @@ class _NewChatScreenState extends State<NewChatScreen> {
                     childAspectRatio: 2.4,
                     children: _quickCards.map((card) => GestureDetector(
                       onTap: () {
-                        messageController.text = card['prompt'] as String;
+                        if (card['route'] == 'doc_analyzer') {
+                          Navigator.push(context, MaterialPageRoute(
+                              builder: (_) => const DocumentAnalyzerScreen()));
+                        } else {
+                          messageController.text = card['prompt'] as String;
+                        }
                       },
                       child: Container(
                         decoration: BoxDecoration(
