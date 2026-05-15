@@ -344,6 +344,7 @@ class _ChatBubbleState extends State<ChatBubble>
           _omegaAvatar(),
           const SizedBox(width: 8),
           Flexible(child: _answerBubble(isDark, text)),
+
         ],
       ),
     );
@@ -352,66 +353,23 @@ class _ChatBubbleState extends State<ChatBubble>
   // ── Open URL in external browser ─────────────────────────────────────────────
   static Future<void> _openUrl(BuildContext context, String rawUrl) async {
     try {
-      // Clean the URL — strip emoji, spaces, trailing punctuation
-      String cleaned = rawUrl.trim();
-      cleaned = cleaned.replaceAll(RegExp(r'^[🔗\s]+'), ''); // remove 🔗 prefix
-      cleaned = cleaned.replaceAll(RegExp(r'[\s]+'), '');     // remove spaces
-      if (!cleaned.startsWith('http')) cleaned = 'https://$cleaned';
-
+      String cleaned = rawUrl.trim().replaceAll(RegExp(r'\s+'), '');
+      if (!cleaned.startsWith('http://') && !cleaned.startsWith('https://')) {
+        cleaned = 'https://$cleaned';
+      }
       final uri = Uri.parse(cleaned);
-
-      // Try externalApplication first (opens Chrome / default browser)
-      bool launched = false;
-      try {
-        launched = await launchUrl(
-          uri,
-          mode: LaunchMode.externalApplication,
-        );
-      } catch (_) {}
-
-      // Fallback 1: platformDefault
-      if (!launched) {
-        try {
-          launched = await launchUrl(
-            uri,
-            mode: LaunchMode.platformDefault,
-          );
-        } catch (_) {}
-      }
-
-      // Fallback 2: inAppWebView
-      if (!launched) {
-        try {
-          launched = await launchUrl(
-            uri,
-            mode: LaunchMode.inAppWebView,
-          );
-        } catch (_) {}
-      }
-
-      if (!launched && context.mounted) {
-        // Last resort — copy to clipboard with message
-        await Clipboard.setData(ClipboardData(text: cleaned));
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Row(children: [
-              Icon(Icons.info_outline, color: Colors.white, size: 16),
-              SizedBox(width: 8),
-              Expanded(child: Text("Link copied! Paste in your browser.")),
-            ]),
-            backgroundColor: Colors.orange,
-            duration: const Duration(seconds: 3),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          ),
-        );
-      }
+      final launched = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+      if (!launched) throw 'Could not launch';
     } catch (e) {
+      await Clipboard.setData(ClipboardData(text: rawUrl));
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text("Could not open link: $e"),
-            backgroundColor: Colors.red,
+            content: const Text("Link copied! Open in browser manually"),
+            backgroundColor: Colors.orange,
             behavior: SnackBarBehavior.floating,
           ),
         );

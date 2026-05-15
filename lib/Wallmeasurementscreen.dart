@@ -102,7 +102,7 @@ class _WallMeasurementScreenState extends State<WallMeasurementScreen>
           const Text('For best results, take a straight-on photo of the wall', style: TextStyle(color: Colors.grey, fontSize: 12)),
           const SizedBox(height: 20),
           Row(children: [
-            Expanded(child: _srcBtn(Icons.camera_alt_rounded, 'Camera', const Color(0xFFFF6D00), () {
+            Expanded(child: _srcBtn(Icons.camera_alt_rounded, 'Camera', const Color(0xFF1BA8D4), () {
               Navigator.pop(context); _pickImage(ImageSource.camera);
             })),
             const SizedBox(width: 12),
@@ -227,7 +227,7 @@ class _WallMeasurementScreenState extends State<WallMeasurementScreen>
     final card = isDark ? const Color(0xFF1E1E1E) : Colors.white;
     final textColor = isDark ? Colors.white : Colors.black87;
     final subColor = isDark ? Colors.white54 : Colors.black54;
-    const accent = Color(0xFFFF6D00);
+    const accent = Color(0xFF1BA8D4);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle(statusBarColor: bg, statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark),
@@ -451,7 +451,7 @@ class _WallMeasurementScreenState extends State<WallMeasurementScreen>
   }
 
   Widget _buildResultCard(Color card, Color textColor, {required bool isStreaming}) {
-    const accent = Color(0xFFFF6D00);
+    const accent = Color(0xFF1BA8D4);
     final wallType = _wallTypes[_selectedWallType];
     return Container(
       width: double.infinity,

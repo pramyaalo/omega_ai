@@ -1,26 +1,51 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:web_socket_channel/status.dart' as status;
 
-// ── Room styles ──
+// ═══════════════════════════════════════════════════════════════
+// EXACT COLORS FROM NewChatScreen — DO NOT CHANGE
+// ═══════════════════════════════════════════════════════════════
+const kCyan        = Color(0xFF1BA8D4);
+const kCyanDark    = Color(0xFF1890B8);
+const kCyanLight   = Color(0xFF26C0F0);
+const kBgWhite     = Color(0xFFFFFFFF);
+const kBgLight     = Color(0xFFF6FAFE);
+const kCardBg      = Color(0xFFF0F7FF);
+const kCardBorder  = Color(0xFFD1E9F6);
+const kBorderLight = Color(0xFFE8EFF5);
+const kTextPrimary = Color(0xFF111827);
+const kTextSub     = Color(0xFF6B7280);
+const kTextMuted   = Color(0xFF9CA3AF);
+
+const kDarkBg      = Color(0xFF0D1B2A);
+const kDarkBg2     = Color(0xFF0A2540);
+const kDarkCard    = Color(0xFF1A2744);
+const kDarkSidebar = Color(0xFF112035);
+const kDarkBorder  = Color(0xFF1E3354);
+const kDarkSub     = Color(0xFF8899AA);
+
+// ═══════════════════════════════════════════════════════════════
+// ROOM STYLES & TYPES
+// ═══════════════════════════════════════════════════════════════
+
 const List<Map<String, dynamic>> kRoomStyles = [
-  {'label': 'Modern',      'icon': '🏙️', 'color': Color(0xFF1A73E8), 'desc': 'Clean lines, minimalist, contemporary'},
-  {'label': 'Scandinavian','icon': '🌿', 'color': Color(0xFF2B9348), 'desc': 'Light, natural, cozy & functional'},
-  {'label': 'Luxury',      'icon': '✨', 'color': Color(0xFFFFB300), 'desc': 'Rich textures, gold accents, premium'},
-  {'label': 'Industrial',  'icon': '🔩', 'color': Color(0xFF607D8B), 'desc': 'Raw materials, exposed brick, metal'},
-  {'label': 'Bohemian',    'icon': '🎨', 'color': Color(0xFFE91E63), 'desc': 'Colorful, eclectic, artistic & free'},
-  {'label': 'Japanese',    'icon': '🍵', 'color': Color(0xFF795548), 'desc': 'Zen, minimalist, natural materials'},
-  {'label': 'Mediterranean','icon': '🌊', 'color': Color(0xFF00BCD4), 'desc': 'Blue & white, terracotta, breezy'},
-  {'label': 'Classic',     'icon': '🏛️', 'color': Color(0xFF9C27B0), 'desc': 'Traditional, elegant, timeless'},
+  {'label': 'Modern',        'icon': '🏙️'},
+  {'label': 'Scandinavian',  'icon': '🌿'},
+  {'label': 'Luxury',        'icon': '✨'},
+  {'label': 'Industrial',    'icon': '🔩'},
+  {'label': 'Bohemian',      'icon': '🎨'},
+  {'label': 'Japanese',      'icon': '🍵'},
+  {'label': 'Mediterranean', 'icon': '🌊'},
+  {'label': 'Classic',       'icon': '🏛️'},
 ];
 
-// ── Room types ──
 const List<String> kRoomTypes = [
   'Living Room', 'Bedroom', 'Kitchen', 'Bathroom',
   'Office', 'Dining Room', 'Kids Room', 'Balcony',
@@ -28,7 +53,6 @@ const List<String> kRoomTypes = [
 
 class RoomDesignerScreen extends StatefulWidget {
   const RoomDesignerScreen({super.key});
-
   @override
   State<RoomDesignerScreen> createState() => _RoomDesignerScreenState();
 }
@@ -36,577 +60,697 @@ class RoomDesignerScreen extends StatefulWidget {
 class _RoomDesignerScreenState extends State<RoomDesignerScreen>
     with TickerProviderStateMixin {
 
-  // State
-  XFile? _selectedImage;
-  int _selectedStyleIndex = 0;
-  String _selectedRoomType = 'Living Room';
-  String _additionalNotes = '';
-  final TextEditingController _notesController = TextEditingController();
-  String _generatedResult = '';
-  bool _isGenerating = false;
-  bool _showResult = false;
-  String _selectedLanguage = 'English';
+  XFile?      _selectedImage;
+  Uint8List?  _generatedImageBytes;
+  int         _selectedStyleIndex = 0;
+  String      _selectedRoomType   = 'Living Room';
+  String      _additionalNotes    = '';
+  bool        _isGenerating       = false;
+  String      _statusMessage      = '';
+  String      _selectedLanguage   = 'English';
 
-  // WebSocket
+  final _notesController = TextEditingController();
+  final _picker          = ImagePicker();
   WebSocketChannel? _channel;
 
-  // Image picker
-  final ImagePicker _picker = ImagePicker();
-
-  // Animations
-  late AnimationController _slideController;
   late AnimationController _pulseController;
-  late Animation<Offset> _slideAnim;
-  late Animation<double> _pulseAnim;
+  late Animation<double>   _pulseAnim;
 
   @override
   void initState() {
     super.initState();
     _loadLanguage();
-    _slideController = AnimationController(vsync: this, duration: const Duration(milliseconds: 500));
-    _pulseController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1000))..repeat(reverse: true);
-    _slideAnim = Tween<Offset>(begin: const Offset(0, 0.5), end: Offset.zero)
-        .animate(CurvedAnimation(parent: _slideController, curve: Curves.easeOutCubic));
-    _pulseAnim = Tween<double>(begin: 0.95, end: 1.05)
+    _pulseController = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 1200))
+      ..repeat(reverse: true);
+    _pulseAnim = Tween<double>(begin: 0.93, end: 1.07)
         .animate(CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut));
   }
 
   Future<void> _loadLanguage() async {
     final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
     setState(() => _selectedLanguage = prefs.getString('selected_language') ?? 'English');
   }
 
   @override
   void dispose() {
     _channel?.sink.close(status.goingAway);
-    _slideController.dispose();
     _pulseController.dispose();
     _notesController.dispose();
     super.dispose();
   }
 
+  // ── Image Pick ─────────────────────────────────────────────────────────────
+
   Future<void> _pickImage(ImageSource source) async {
-    final img = await _picker.pickImage(source: source, imageQuality: 85);
-    if (img != null) {
+    final img = await _picker.pickImage(
+        source: source, imageQuality: 80, maxWidth: 1024);
+    if (img != null && mounted) {
       setState(() {
-        _selectedImage = img;
-        _showResult = false;
-        _generatedResult = '';
+        _selectedImage       = img;
+        _generatedImageBytes = null;
+        _statusMessage       = '';
       });
-      _slideController.reset();
     }
   }
 
   void _showImagePicker() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final card = isDark ? const Color(0xFF1E1E1E) : Colors.white;
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (_) => Container(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-        decoration: BoxDecoration(color: card, borderRadius: const BorderRadius.vertical(top: Radius.circular(24))),
+        decoration: BoxDecoration(
+          color: isDark ? kDarkCard : kBgWhite,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border(top: BorderSide(color: isDark ? kDarkBorder : kBorderLight)),
+        ),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Container(width: 40, height: 4, margin: const EdgeInsets.only(bottom: 20),
-              decoration: BoxDecoration(color: Colors.grey.withOpacity(0.3), borderRadius: BorderRadius.circular(2))),
-          const Text('Select Image', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Container(
+            width: 40, height: 4,
+            margin: const EdgeInsets.only(bottom: 20),
+            decoration: BoxDecoration(
+                color: kCyan.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(2)),
+          ),
+          Text('Select Room Photo',
+              style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : kTextPrimary)),
           const SizedBox(height: 20),
           Row(children: [
-            Expanded(child: _imageSourceBtn(Icons.camera_alt_rounded, 'Camera', const Color(0xFF4F7EA6), () {
-              Navigator.pop(context); _pickImage(ImageSource.camera);
-            })),
+            Expanded(child: _sourceBtn(
+              Icons.camera_alt_rounded, 'Camera',
+                  () { Navigator.pop(context); _pickImage(ImageSource.camera); },
+            )),
             const SizedBox(width: 12),
-            Expanded(child: _imageSourceBtn(Icons.photo_library_rounded, 'Gallery', const Color(0xFF2B9348), () {
-              Navigator.pop(context); _pickImage(ImageSource.gallery);
-            })),
+            Expanded(child: _sourceBtn(
+              Icons.photo_library_rounded, 'Gallery',
+                  () { Navigator.pop(context); _pickImage(ImageSource.gallery); },
+            )),
           ]),
         ]),
       ),
     );
   }
 
-  Widget _imageSourceBtn(IconData icon, String label, Color color, VoidCallback onTap) {
+  Widget _sourceBtn(IconData icon, String label, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 18),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: kCyan.withOpacity(0.08),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withOpacity(0.3)),
+          border: Border.all(color: kCardBorder),
         ),
         child: Column(children: [
-          Icon(icon, color: color, size: 32),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+                color: kCyan.withOpacity(0.12), shape: BoxShape.circle),
+            child: Icon(icon, color: kCyan, size: 26),
+          ),
           const SizedBox(height: 8),
-          Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w600)),
+          Text(label,
+              style: const TextStyle(
+                  color: kCyan, fontWeight: FontWeight.w600, fontSize: 13)),
         ]),
       ),
     );
   }
 
-  void _generateDesign() async {
+  // ── Generate ───────────────────────────────────────────────────────────────
+
+  Future<void> _generateDesign() async {
     if (_selectedImage == null) {
       _showSnack('Please upload a room photo first!');
       return;
     }
-
     setState(() {
-      _isGenerating = true;
-      _generatedResult = '';
-      _showResult = false;
+      _isGenerating        = true;
+      _generatedImageBytes = null;
+      _statusMessage       = 'Reading image...';
     });
-    _slideController.reset();
-
-    // Read image as base64
-    final bytes = await File(_selectedImage!.path).readAsBytes();
-    final base64Image = base64Encode(bytes);
-    final ext = _selectedImage!.path.split('.').last.toLowerCase();
-    final style = kRoomStyles[_selectedStyleIndex];
-
-    final prompt =
-        'You are an expert interior designer. Analyze this room image and provide a detailed redesign plan.\n\n'
-        'DESIGN STYLE: ${style['label']} — ${style['desc']}\n'
-        'ROOM TYPE: $_selectedRoomType\n'
-        '${_additionalNotes.isNotEmpty ? 'ADDITIONAL NOTES: $_additionalNotes\n' : ''}'
-        '\nProvide:\n'
-        '1. 🎨 COLOR PALETTE — Specific colors with hex codes\n'
-        '2. 🪑 FURNITURE RECOMMENDATIONS — Key pieces with descriptions\n'
-        '3. 💡 LIGHTING SUGGESTIONS — Types and placement\n'
-        '4. 🖼️ WALL & DECOR IDEAS — Art, textures, materials\n'
-        '5. 🌿 ACCESSORIES & PLANTS — Final touches\n'
-        '6. 💰 ESTIMATED BUDGET RANGE — Low / Mid / High\n'
-        '7. ⭐ TOP 3 PRIORITY CHANGES — Most impactful improvements\n\n'
-        'Be specific, practical and inspiring. Language: $_selectedLanguage.';
-
     try {
-      _channel?.sink.close(status.goingAway);
-      _channel = WebSocketChannel.connect(Uri.parse('wss://silo-churn-worst.ngrok-free.dev/ws/chat/'));
+      await _channel?.sink.close(status.goingAway);
+      _channel = null;
 
-      _channel!.stream.listen((data) {
-        final decoded = jsonDecode(data);
-        final type = decoded['type'];
-        final text = decoded['message'] ?? '';
-        setState(() {
-          if (type == 'stream') _generatedResult = text;
-          if (type == 'done') {
-            _isGenerating = false;
-            _showResult = true;
-            _slideController.forward();
+      final bytes       = await File(_selectedImage!.path).readAsBytes();
+      final base64Image = base64Encode(bytes);
+      final ext         = _selectedImage!.path.split('.').last.toLowerCase();
+      final style       = kRoomStyles[_selectedStyleIndex];
+
+      _channel = WebSocketChannel.connect(
+          Uri.parse('wss://silo-churn-worst.ngrok-free.dev/ws/chat/'));
+
+      _channel!.stream.listen(
+            (data) {
+          if (!mounted) return;
+          final decoded = jsonDecode(data as String);
+          final type    = decoded['type'] as String? ?? '';
+          setState(() {
+            if (type == 'room_status') _statusMessage = decoded['message'] ?? 'Generating...';
+            if (type == 'room_image') {
+              final imgB64 = decoded['image'] as String? ?? '';
+              if (imgB64.isNotEmpty) _generatedImageBytes = base64Decode(imgB64);
+            }
+            if (type == 'room_error') {
+              _statusMessage = decoded['message'] ?? 'Error occurred';
+              _isGenerating  = false;
+            }
+            if (type == 'done') {
+              _isGenerating  = false;
+              _statusMessage = '';
+            }
+          });
+        },
+        onError: (e) {
+          if (!mounted) return;
+          setState(() { _isGenerating = false; _statusMessage = ''; });
+          _showSnack('Connection error. Please try again.');
+        },
+        onDone: () {
+          if (!mounted) return;
+          if (_isGenerating) {
+            setState(() { _isGenerating = false; _statusMessage = ''; });
+            _showSnack('Connection closed. Please try again.');
           }
-        });
-      }, onError: (_) {
-        setState(() => _isGenerating = false);
-        _showSnack('Connection error. Check server.');
-      });
+        },
+      );
 
       _channel!.sink.add(jsonEncode({
-        'message': prompt,
-        'image': base64Image,
+        'type':      'room_generate',
+        'image':     base64Image,
         'image_ext': ext,
-        'language': _selectedLanguage,
+        'style':     style['label'],
+        'room_type': _selectedRoomType,
+        'notes':     _additionalNotes,
+        'language':  _selectedLanguage,
       }));
     } catch (e) {
-      setState(() => _isGenerating = false);
-      _showSnack('Error: $e');
+      if (!mounted) return;
+      setState(() { _isGenerating = false; _statusMessage = ''; });
+      _showSnack('Failed: $e');
     }
   }
 
   void _resetAll() {
     setState(() {
-      _selectedImage = null;
-      _generatedResult = '';
-      _showResult = false;
-      _notesController.clear();
-      _additionalNotes = '';
+      _selectedImage       = null;
+      _generatedImageBytes = null;
+      _statusMessage       = '';
+      _isGenerating        = false;
     });
-    _slideController.reset();
+    _notesController.clear();
+    _additionalNotes = '';
   }
 
-  void _shareResult() {
-    if (_generatedResult.isEmpty) return;
-    Share.share(
-      '🏠 Room Design Plan — ${kRoomStyles[_selectedStyleIndex]['label']} $_selectedRoomType\n\n$_generatedResult\n\n— Generated by Omega AI',
-      subject: 'Room Design by Omega AI',
-    );
-  }
-
-  void _copyResult() {
-    Clipboard.setData(ClipboardData(text: _generatedResult));
-    _showSnack('Design plan copied! ✅');
+  Future<void> _saveImage() async {
+    if (_generatedImageBytes == null) return;
+    try {
+      final dir  = await getTemporaryDirectory();
+      final file = File('${dir.path}/omega_room_design.png');
+      await file.writeAsBytes(_generatedImageBytes!);
+      await Share.shareXFiles([XFile(file.path)],
+          text: 'Room redesigned by Omega AI 🏠✨');
+    } catch (e) {
+      _showSnack('Failed to save: $e');
+    }
   }
 
   void _showSnack(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        duration: const Duration(seconds: 2),
-      ),
-    );
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(msg),
+      behavior: SnackBarBehavior.floating,
+      backgroundColor: kCyan,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      duration: const Duration(seconds: 2),
+    ));
   }
+
+  // ── Build ──────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bg = isDark ? const Color(0xFF121212) : const Color(0xFFAACBE5);
-    final card = isDark ? const Color(0xFF1E1E1E) : Colors.white;
-    final textColor = isDark ? Colors.white : Colors.black87;
-    final subColor = isDark ? Colors.white54 : Colors.black54;
-    final accent = const Color(0xFF2B9348);
+    final isDark      = Theme.of(context).brightness == Brightness.dark;
+    final bgColor     = isDark ? kDarkBg    : kBgLight;
+    final cardColor   = isDark ? kDarkCard  : kBgWhite;
+    final textColor   = isDark ? Colors.white : kTextPrimary;
+    final subColor    = isDark ? kDarkSub   : kTextSub;
+    final borderColor = isDark ? kDarkBorder : kBorderLight;
 
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle(
-        statusBarColor: bg,
-        statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
-      ),
-      child: Scaffold(
-        backgroundColor: bg,
-        body: SafeArea(
-          child: Column(children: [
+    return Scaffold(
+      backgroundColor: bgColor,
+      body: SafeArea(child: Column(children: [
 
-            // ── Header ──
-            Padding(
-              padding: const EdgeInsets.fromLTRB(4, 8, 16, 0),
-              child: Row(children: [
-                IconButton(
-                  icon: Icon(Icons.arrow_back_ios_new_rounded, color: textColor),
-                  onPressed: () => Navigator.pop(context),
-                ),
-                const SizedBox(width: 4),
-                const Text('🏠', style: TextStyle(fontSize: 22)),
-                const SizedBox(width: 8),
-                Text('Room Designer', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: textColor)),
-                const Spacer(),
-                if (_selectedImage != null || _showResult)
-                  TextButton.icon(
-                    onPressed: _resetAll,
-                    icon: const Icon(Icons.refresh_rounded, size: 16),
-                    label: const Text('Reset'),
-                    style: TextButton.styleFrom(foregroundColor: accent),
-                  ),
-              ]),
+        // ── Header — same style as NewChatScreen ──────────────────────────
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+          decoration: BoxDecoration(
+            color: isDark ? kDarkBg : kBgWhite,
+            border: Border(bottom: BorderSide(color: borderColor, width: 0.8)),
+          ),
+          child: Row(children: [
+            IconButton(
+              icon: Icon(Icons.arrow_back_ios_new_rounded,
+                  color: textColor, size: 20),
+              onPressed: () => Navigator.pop(context),
             ),
-
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-
-                  // ── Upload image ──
-                  Text('Upload Room Photo', style: TextStyle(fontWeight: FontWeight.w600, color: textColor, fontSize: 14)),
-                  const SizedBox(height: 10),
-
-                  GestureDetector(
-                    onTap: _showImagePicker,
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 300),
-                      width: double.infinity,
-                      height: _selectedImage != null ? 220 : 160,
-                      decoration: BoxDecoration(
-                        color: card,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: _selectedImage != null ? accent : accent.withOpacity(0.3),
-                          width: _selectedImage != null ? 2 : 1,
-                          style: _selectedImage != null ? BorderStyle.solid : BorderStyle.solid,
-                        ),
-                      ),
-                      child: _selectedImage != null
-                          ? Stack(children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(18),
-                          child: Image.file(File(_selectedImage!.path), width: double.infinity, height: 220, fit: BoxFit.cover),
-                        ),
-                        Positioned(
-                          bottom: 10, right: 10,
-                          child: GestureDetector(
-                            onTap: _showImagePicker,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.6),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: const Row(mainAxisSize: MainAxisSize.min, children: [
-                                Icon(Icons.edit_rounded, color: Colors.white, size: 14),
-                                SizedBox(width: 4),
-                                Text('Change', style: TextStyle(color: Colors.white, fontSize: 12)),
-                              ]),
-                            ),
-                          ),
-                        ),
-                      ])
-                          : Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                        ScaleTransition(
-                          scale: _pulseAnim,
-                          child: Container(
-                            width: 60, height: 60,
-                            decoration: BoxDecoration(color: accent.withOpacity(0.1), shape: BoxShape.circle),
-                            child: Icon(Icons.add_photo_alternate_rounded, color: accent, size: 30),
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        Text('Tap to upload room photo', style: TextStyle(color: accent, fontWeight: FontWeight.w600)),
-                        const SizedBox(height: 4),
-                        Text('Camera or Gallery', style: TextStyle(color: subColor, fontSize: 12)),
-                      ]),
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // ── Room type ──
-                  Text('Room Type', style: TextStyle(fontWeight: FontWeight.w600, color: textColor, fontSize: 14)),
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    height: 38,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: kRoomTypes.length,
-                      separatorBuilder: (_, __) => const SizedBox(width: 8),
-                      itemBuilder: (_, i) {
-                        final isSelected = kRoomTypes[i] == _selectedRoomType;
-                        return GestureDetector(
-                          onTap: () => setState(() => _selectedRoomType = kRoomTypes[i]),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 180),
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            decoration: BoxDecoration(
-                              color: isSelected ? accent : card,
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: isSelected ? accent : accent.withOpacity(0.3)),
-                            ),
-                            child: Center(
-                              child: Text(kRoomTypes[i],
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: isSelected ? Colors.white : accent,
-                                  )),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // ── Design style ──
-                  Text('Design Style', style: TextStyle(fontWeight: FontWeight.w600, color: textColor, fontSize: 14)),
-                  const SizedBox(height: 10),
-                  GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 4,
-                      crossAxisSpacing: 10,
-                      mainAxisSpacing: 10,
-                      childAspectRatio: 0.85,
-                    ),
-                    itemCount: kRoomStyles.length,
-                    itemBuilder: (_, i) {
-                      final style = kRoomStyles[i];
-                      final isSelected = i == _selectedStyleIndex;
-                      final color = style['color'] as Color;
-                      return GestureDetector(
-                        onTap: () => setState(() => _selectedStyleIndex = i),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          decoration: BoxDecoration(
-                            color: isSelected ? color : card,
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: isSelected ? color : color.withOpacity(0.3), width: isSelected ? 2 : 1),
-                            boxShadow: isSelected ? [BoxShadow(color: color.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 3))] : [],
-                          ),
-                          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                            Text(style['icon'] as String, style: const TextStyle(fontSize: 24)),
-                            const SizedBox(height: 4),
-                            Text(style['label'] as String,
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w600,
-                                  color: isSelected ? Colors.white : color,
-                                )),
-                          ]),
-                        ),
-                      );
-                    },
-                  ),
-
-                  const SizedBox(height: 18),
-
-                  // ── Additional notes ──
-                  Text('Additional Notes (optional)', style: TextStyle(fontWeight: FontWeight.w600, color: textColor, fontSize: 14)),
-                  const SizedBox(height: 8),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: card,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: accent.withOpacity(0.2)),
-                    ),
-                    child: TextField(
-                      controller: _notesController,
-                      maxLines: 2,
-                      style: TextStyle(color: textColor, fontSize: 13),
-                      onChanged: (v) => _additionalNotes = v,
-                      decoration: InputDecoration(
-                        hintText: 'e.g. Budget under ₹50,000, prefer earthy tones, need more storage...',
-                        hintStyle: TextStyle(color: subColor, fontSize: 12),
-                        contentPadding: const EdgeInsets.all(14),
-                        border: InputBorder.none,
-                        prefixIcon: Icon(Icons.note_rounded, color: accent, size: 20),
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // ── Generate button ──
-                  SizedBox(
-                    width: double.infinity,
-                    height: 54,
-                    child: ElevatedButton(
-                      onPressed: _isGenerating ? null : _generateDesign,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: accent,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        elevation: 4,
-                        shadowColor: accent.withOpacity(0.4),
-                      ),
-                      child: _isGenerating
-                          ? Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                        const SizedBox(width: 20, height: 20,
-                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)),
-                        const SizedBox(width: 12),
-                        const Text('Analyzing & Designing...', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
-                      ])
-                          : Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                        const Text('🏠', style: TextStyle(fontSize: 20)),
-                        const SizedBox(width: 10),
-                        const Text('Generate Design Plan', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
-                      ]),
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // ── Streaming result ──
-                  if (_isGenerating && _generatedResult.isNotEmpty)
-                    _buildResultCard(card, textColor, accent, isStreaming: true),
-
-                  // ── Final result ──
-                  if (_showResult && !_isGenerating)
-                    SlideTransition(
-                      position: _slideAnim,
-                      child: _buildResultCard(card, textColor, accent, isStreaming: false),
-                    ),
-
-                  const SizedBox(height: 20),
-                ]),
+            // Omega AI branding — same as NewChatScreen header
+            const Text('Omega ', style: TextStyle(
+                fontSize: 16, fontWeight: FontWeight.w700, color: kCyan)),
+            const Text('Room', style: TextStyle(
+                fontSize: 16, fontWeight: FontWeight.w700, color: kCyan)),
+            const SizedBox(width: 6),
+            const Text('🏠', style: TextStyle(fontSize: 18)),
+            const Spacer(),
+            if (_selectedImage != null || _generatedImageBytes != null)
+              TextButton.icon(
+                onPressed: _resetAll,
+                icon: const Icon(Icons.refresh_rounded, size: 16, color: kCyan),
+                label: const Text('Reset',
+                    style: TextStyle(color: kCyan, fontSize: 13,
+                        fontWeight: FontWeight.w600)),
               ),
-            ),
           ]),
         ),
-      ),
+
+        // ── Body ─────────────────────────────────────────────────────────
+        Expanded(child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+
+            // ── Before / After ──────────────────────────────────────────
+            if (_selectedImage != null) ...[
+              Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                // Before
+                Expanded(child: Column(children: [
+                  Text('Before',
+                      style: TextStyle(fontSize: 12,
+                          fontWeight: FontWeight.w600, color: subColor)),
+                  const SizedBox(height: 6),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.file(File(_selectedImage!.path),
+                        height: 160, width: double.infinity, fit: BoxFit.cover),
+                  ),
+                ])),
+
+                Padding(
+                  padding: const EdgeInsets.only(top: 28),
+                  child: Icon(Icons.arrow_forward_rounded, color: kCyan, size: 26),
+                ),
+
+                // After
+                Expanded(child: Column(children: [
+                  Text('After ✨',
+                      style: TextStyle(
+                          fontSize: 12, fontWeight: FontWeight.w600,
+                          color: _generatedImageBytes != null ? kCyan : subColor)),
+                  const SizedBox(height: 6),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: _generatedImageBytes != null
+                        ? Stack(children: [
+                      Image.memory(_generatedImageBytes!,
+                          height: 160, width: double.infinity,
+                          fit: BoxFit.cover),
+                      Positioned(
+                        top: 8, right: 8,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                                colors: [kCyanDark, kCyanLight]),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: const Text('Done ✓',
+                              style: TextStyle(
+                                  color: Colors.white, fontSize: 10,
+                                  fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                    ])
+                        : Container(
+                      height: 160,
+                      decoration: BoxDecoration(
+                        color: isDark ? kDarkCard : kCardBg,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: kCardBorder),
+                      ),
+                      child: Center(
+                        child: _isGenerating
+                            ? Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const CircularProgressIndicator(
+                                color: kCyan, strokeWidth: 2),
+                            const SizedBox(height: 10),
+                            Text(
+                              _statusMessage.isNotEmpty
+                                  ? _statusMessage : 'Generating...',
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                  color: kCyan, fontSize: 10,
+                                  fontWeight: FontWeight.w600),
+                            ),
+                          ],
+                        )
+                            : const Icon(Icons.auto_awesome_rounded,
+                            color: kCyan, size: 32),
+                      ),
+                    ),
+                  ),
+                ])),
+              ]),
+
+              // Save & Share button
+              if (_generatedImageBytes != null) ...[
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _saveImage,
+                    icon: const Icon(Icons.ios_share_rounded, size: 18),
+                    label: const Text('Save & Share'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: kCyan,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+              ],
+
+              const SizedBox(height: 10),
+              TextButton.icon(
+                onPressed: _showImagePicker,
+                icon: const Icon(Icons.edit_rounded, size: 14, color: kCyan),
+                label: const Text('Change Photo',
+                    style: TextStyle(color: kCyan, fontSize: 12,
+                        fontWeight: FontWeight.w600)),
+              ),
+              const SizedBox(height: 8),
+            ],
+
+            // ── Upload Card ───────────────────────────────────────────
+            if (_selectedImage == null) ...[
+              _sectionLabel('Upload Room Photo', textColor),
+              const SizedBox(height: 10),
+              GestureDetector(
+                onTap: _showImagePicker,
+                child: Container(
+                  width: double.infinity, height: 150,
+                  decoration: BoxDecoration(
+                    color: isDark ? kDarkCard : kCardBg,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: kCardBorder),
+                    boxShadow: [
+                      BoxShadow(
+                          color: Colors.black.withOpacity(
+                              isDark ? 0.15 : 0.04),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2))
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      ScaleTransition(
+                        scale: _pulseAnim,
+                        child: Container(
+                          width: 58, height: 58,
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                                colors: [kCyanDark, kCyanLight],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight),
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                  color: kCyan.withOpacity(0.35),
+                                  blurRadius: 14,
+                                  offset: const Offset(0, 4))
+                            ],
+                          ),
+                          child: const Icon(
+                              Icons.add_photo_alternate_rounded,
+                              color: Colors.white, size: 28),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      const Text('Tap to upload room photo',
+                          style: TextStyle(
+                              color: kCyan,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14)),
+                      const SizedBox(height: 4),
+                      Text('Camera or Gallery',
+                          style: TextStyle(color: subColor, fontSize: 12)),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
+
+            // ── Room Type ─────────────────────────────────────────────
+            _sectionLabel('Room Type', textColor),
+            const SizedBox(height: 10),
+            SizedBox(
+              height: 38,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: kRoomTypes.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (_, i) {
+                  final isSel = kRoomTypes[i] == _selectedRoomType;
+                  return GestureDetector(
+                    onTap: () => setState(() => _selectedRoomType = kRoomTypes[i]),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                        gradient: isSel
+                            ? const LinearGradient(
+                            colors: [kCyanDark, kCyanLight],
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight)
+                            : null,
+                        color: isSel ? null : (isDark ? kDarkCard : kBgWhite),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                            color: isSel
+                                ? Colors.transparent
+                                : kCardBorder),
+                        boxShadow: isSel
+                            ? [BoxShadow(
+                            color: kCyan.withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 3))]
+                            : [],
+                      ),
+                      child: Center(
+                        child: Text(kRoomTypes[i],
+                            style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: isSel ? Colors.white : kCyan)),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // ── Style Grid ────────────────────────────────────────────
+            _sectionLabel('Design Style', textColor),
+            const SizedBox(height: 10),
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 4, crossAxisSpacing: 10,
+                mainAxisSpacing: 10, childAspectRatio: 0.85,
+              ),
+              itemCount: kRoomStyles.length,
+              itemBuilder: (_, i) {
+                final style = kRoomStyles[i];
+                final isSel = i == _selectedStyleIndex;
+                return GestureDetector(
+                  onTap: () => setState(() => _selectedStyleIndex = i),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    decoration: BoxDecoration(
+                      gradient: isSel
+                          ? const LinearGradient(
+                          colors: [kCyanDark, kCyanLight],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight)
+                          : null,
+                      color: isSel ? null : (isDark ? kDarkCard : kCardBg),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                          color: isSel ? Colors.transparent : kCardBorder,
+                          width: isSel ? 0 : 1.2),
+                      boxShadow: isSel
+                          ? [BoxShadow(
+                          color: kCyan.withOpacity(0.35),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4))]
+                          : [],
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(style['icon'] as String,
+                            style: const TextStyle(fontSize: 24)),
+                        const SizedBox(height: 5),
+                        Text(style['label'] as String,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.w700,
+                                color: isSel ? Colors.white : kCyan)),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+
+            const SizedBox(height: 18),
+
+            // ── Notes ─────────────────────────────────────────────────
+            Container(
+              decoration: BoxDecoration(
+                color: isDark ? kDarkCard : kBgWhite,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: kCardBorder),
+                boxShadow: [
+                  BoxShadow(
+                      color: Colors.black.withOpacity(isDark ? 0.15 : 0.04),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2))
+                ],
+              ),
+              child: TextField(
+                controller: _notesController,
+                maxLines: 2,
+                style: TextStyle(color: textColor, fontSize: 14),
+                onChanged: (v) => _additionalNotes = v,
+                decoration: InputDecoration(
+                  hintText: 'Notes: budget, colors, storage needs...',
+                  hintStyle: TextStyle(color: subColor, fontSize: 13),
+                  contentPadding: const EdgeInsets.all(14),
+                  border: InputBorder.none,
+                  prefixIcon: const Icon(Icons.note_rounded,
+                      color: kCyan, size: 20),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // ── Generate Button — same send button style as NewChatScreen ──
+            SizedBox(
+              width: double.infinity, height: 52,
+              child: ElevatedButton(
+                onPressed: _isGenerating ? null : _generateDesign,
+                style: ElevatedButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14)),
+                  disabledBackgroundColor: kCyan.withOpacity(0.5),
+                ),
+                child: Ink(
+                  decoration: BoxDecoration(
+                    gradient: _isGenerating
+                        ? null
+                        : const LinearGradient(
+                        colors: [kCyanDark, kCyanLight],
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Container(
+                    alignment: Alignment.center,
+                    child: _isGenerating
+                        ? Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                      const SizedBox(width: 18, height: 18,
+                          child: CircularProgressIndicator(
+                              color: Colors.white, strokeWidth: 2)),
+                      const SizedBox(width: 12),
+                      Flexible(
+                        child: Text(
+                          _statusMessage.isNotEmpty
+                              ? _statusMessage : 'Generating...',
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ])
+                        : const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.auto_awesome_rounded,
+                            color: Colors.white, size: 20),
+                        SizedBox(width: 10),
+                        Text('Redesign My Room',
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700)),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 32),
+          ]),
+        )),
+      ])),
     );
   }
 
-  Widget _buildResultCard(Color card, Color textColor, Color accent, {required bool isStreaming}) {
-    final style = kRoomStyles[_selectedStyleIndex];
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: card,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: accent.withOpacity(0.3)),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 12, offset: const Offset(0, 4))],
+  // ── Helpers ────────────────────────────────────────────────────────────────
+
+  Widget _sectionLabel(String text, Color color) {
+    return Row(children: [
+      Container(
+        width: 3, height: 15,
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+              colors: [kCyanDark, kCyanLight],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter),
+          borderRadius: BorderRadius.circular(2),
+        ),
       ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-
-        // Result header
-        Container(
-          padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
-          decoration: BoxDecoration(
-            color: accent.withOpacity(0.1),
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          child: Row(children: [
-            Text(style['icon'] as String, style: const TextStyle(fontSize: 20)),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(
-                  isStreaming ? 'Designing your room...' : '${style['label']} Design Plan ✨',
-                  style: TextStyle(fontWeight: FontWeight.w700, color: accent, fontSize: 14),
-                ),
-                Text(_selectedRoomType, style: TextStyle(fontSize: 11, color: accent.withOpacity(0.7))),
-              ]),
-            ),
-            if (!isStreaming) ...[
-              IconButton(
-                icon: Icon(Icons.copy_rounded, color: accent, size: 20),
-                onPressed: _copyResult,
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-              ),
-              IconButton(
-                icon: Icon(Icons.share_rounded, color: accent, size: 20),
-                onPressed: _shareResult,
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-              ),
-            ],
-          ]),
-        ),
-
-        // Result content
-        Padding(
-          padding: const EdgeInsets.all(16),
-          child: SelectableText(
-            _generatedResult,
-            style: TextStyle(color: textColor, fontSize: 13.5, height: 1.65),
-          ),
-        ),
-
-        // Action buttons
-        if (!isStreaming)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            child: Row(children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: _copyResult,
-                  icon: const Icon(Icons.copy_rounded, size: 16),
-                  label: const Text('Copy Plan'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: accent,
-                    side: BorderSide(color: accent.withOpacity(0.5)),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: _shareResult,
-                  icon: const Icon(Icons.share_rounded, size: 16),
-                  label: const Text('Share'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: accent,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                  ),
-                ),
-              ),
-            ]),
-          ),
-      ]),
-    );
+      const SizedBox(width: 8),
+      Text(text,
+          style: TextStyle(
+              fontWeight: FontWeight.w700,
+              color: color,
+              fontSize: 13,
+              letterSpacing: 0.2)),
+    ]);
   }
 }

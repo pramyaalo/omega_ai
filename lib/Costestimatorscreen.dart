@@ -7,14 +7,14 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:web_socket_channel/status.dart' as status;
 
 const List<Map<String, dynamic>> kWorkTypes = [
-  {'label': 'Painting',      'icon': '🎨', 'color': Color(0xFF1A73E8)},
-  {'label': 'Tiling',        'icon': '🟫', 'color': Color(0xFF795548)},
-  {'label': 'Flooring',      'icon': '🏠', 'color': Color(0xFF2B9348)},
-  {'label': 'False Ceiling',  'icon': '⬜', 'color': Color(0xFF607D8B)},
-  {'label': 'Full Renovation','icon': '🔨', 'color': Color(0xFFE91E63)},
-  {'label': 'Electrical',    'icon': '⚡', 'color': Color(0xFFFFB300)},
-  {'label': 'Plumbing',      'icon': '🔧', 'color': Color(0xFF00BCD4)},
-  {'label': 'Furniture',     'icon': '🪑', 'color': Color(0xFF9C27B0)},
+  {'label': 'Painting',      'icon': '🎨', 'color': Color(0xFF1BA8D4)},
+  {'label': 'Tiling',        'icon': '🟫', 'color': Color(0xFF1BA8D4)},
+  {'label': 'Flooring',      'icon': '🏠', 'color': Color(0xFF1BA8D4)},
+  {'label': 'False Ceiling',  'icon': '⬜', 'color': Color(0xFF1BA8D4)},
+  {'label': 'Full Renovation','icon': '🔨', 'color': Color(0xFF1BA8D4)},
+  {'label': 'Electrical',    'icon': '⚡', 'color': Color(0xFF1BA8D4)},
+  {'label': 'Plumbing',      'icon': '🔧', 'color': Color(0xFF1BA8D4)},
+  {'label': 'Furniture',     'icon': '🪑', 'color': Color(0xFF1BA8D4)},
 ];
 
 const List<String> kRoomTypes = [
@@ -214,7 +214,7 @@ class _CostEstimatorScreenState extends State<CostEstimatorScreen>
     final card = isDark ? const Color(0xFF1E1E1E) : Colors.white;
     final textColor = isDark ? Colors.white : Colors.black87;
     final subColor = isDark ? Colors.white54 : Colors.black54;
-    const accent = Color(0xFF9C27B0);
+    const accent = Color(0xFF1BA8D4);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle(statusBarColor: bg, statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark),
@@ -359,7 +359,7 @@ class _CostEstimatorScreenState extends State<CostEstimatorScreen>
                   const SizedBox(height: 10),
                   Row(children: kQualityLevels.map((q) {
                     final isSelected = q == _selectedQuality;
-                    final colors = {'Budget': Colors.green, 'Standard': const Color(0xFF1A73E8), 'Premium': const Color(0xFFFF6D00), 'Luxury': const Color(0xFF9C27B0)};
+                    final colors = {'Budget': Color(0xFF1BA8D4), 'Standard': const Color(0xFF1BA8D4), 'Premium': const Color(0xFF1BA8D4), 'Luxury': const Color(0xFF1BA8D4)};
                     final qColor = colors[q]!;
                     return Expanded(child: GestureDetector(
                       onTap: () => setState(() => _selectedQuality = q),
