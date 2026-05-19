@@ -7,14 +7,14 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:web_socket_channel/status.dart' as status;
 
 const List<Map<String, dynamic>> kVideoTypes = [
-  {'label': 'YouTube',       'icon': '▶️', 'color': Color(0xFFFF0000)},
-  {'label': 'Instagram Reel','icon': '📱', 'color': Color(0xFFE91E63)},
-  {'label': 'Short Film',    'icon': '🎬', 'color': Color(0xFF1A73E8)},
-  {'label': 'Ad / Promo',    'icon': '📢', 'color': Color(0xFFFF6D00)},
-  {'label': 'Documentary',   'icon': '🎥', 'color': Color(0xFF607D8B)},
-  {'label': 'Tutorial',      'icon': '📚', 'color': Color(0xFF2B9348)},
-  {'label': 'Podcast',       'icon': '🎙️', 'color': Color(0xFF9C27B0)},
-  {'label': 'Vlog',          'icon': '🤳', 'color': Color(0xFFFFB300)},
+  {'label': 'YouTube',       'icon': '▶️', 'color': Color(0xFF1BA8D4)},
+  {'label': 'Instagram Reel','icon': '📱', 'color': Color(0xFF1BA8D4)},
+  {'label': 'Short Film',    'icon': '🎬', 'color': Color(0xFF1BA8D4)},
+  {'label': 'Ad / Promo',    'icon': '📢', 'color': Color(0xFF1BA8D4)},
+  {'label': 'Documentary',   'icon': '🎥', 'color': Color(0xFF1BA8D4)},
+  {'label': 'Tutorial',      'icon': '📚', 'color': Color(0xFF1BA8D4)},
+  {'label': 'Podcast',       'icon': '🎙️', 'color': Color(0xFF1BA8D4)},
+  {'label': 'Vlog',          'icon': '🤳', 'color': Color(0xFF1BA8D4)},
 ];
 
 const List<Map<String, String>> kDurations = [
@@ -27,12 +27,12 @@ const List<Map<String, String>> kDurations = [
 ];
 
 const List<Map<String, dynamic>> kTones = [
-  {'label': 'Energetic',    'icon': '⚡', 'color': Color(0xFFFFB300)},
-  {'label': 'Cinematic',    'icon': '🎞️', 'color': Color(0xFF1A73E8)},
-  {'label': 'Funny',        'icon': '😂', 'color': Color(0xFFFF6D00)},
-  {'label': 'Educational',  'icon': '🎓', 'color': Color(0xFF2B9348)},
-  {'label': 'Emotional',    'icon': '❤️', 'color': Color(0xFFE91E63)},
-  {'label': 'Motivational', 'icon': '💪', 'color': Color(0xFF9C27B0)},
+  {'label': 'Energetic',    'icon': '⚡', 'color': Color(0xFF1BA8D4)},
+  {'label': 'Cinematic',    'icon': '🎞️', 'color': Color(0xFF1BA8D4)},
+  {'label': 'Funny',        'icon': '😂', 'color': Color(0xFF1BA8D4)},
+  {'label': 'Educational',  'icon': '🎓', 'color': Color(0xFF1BA8D4)},
+  {'label': 'Emotional',    'icon': '❤️', 'color': Color(0xFF1BA8D4)},
+  {'label': 'Motivational', 'icon': '💪', 'color': Color(0xFF1BA8D4)},
 ];
 
 class VideoAiScreen extends StatefulWidget {
@@ -214,7 +214,7 @@ class _VideoAiScreenState extends State<VideoAiScreen>
     final card = isDark ? const Color(0xFF1E1E1E) : Colors.white;
     final textColor = isDark ? Colors.white : Colors.black87;
     final subColor = isDark ? Colors.white54 : Colors.black54;
-    const accent = Color(0xFFE94560);
+    const accent = Color(0xFF1BA8D4);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle(
@@ -507,7 +507,7 @@ class _VideoAiScreenState extends State<VideoAiScreen>
               ),
               Text(
                 '${videoType['label']} • ${kDurations[_selectedDurationIndex]['label']} • ${tone['label']}',
-                style: TextStyle(fontSize: 11, color: accent.withOpacity(0.7)),
+                style: TextStyle(fontSize: 11, color: Color(0xFF1BA8D4).withOpacity(0.7)),
               ),
             ])),
             if (!isStreaming) ...[
