@@ -18,6 +18,7 @@ import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'ImageGenerationScreen.dart';
+import 'RagScreen.dart';
 import 'SettingsScreen.dart';
 import 'ChatBubble.dart';
 
@@ -77,6 +78,7 @@ class _NewChatScreenState extends State<NewChatScreen> {
     {'icon': Icons.image_outlined,      'label': 'Generate an image',   'prompt': '',                            'route': 'img_gen'},
     {'icon': Icons.description_rounded, 'label': 'Document Analyzer',   'prompt': '',                            'route': 'doc_analyzer'},
     {'icon': Icons.translate_rounded,   'label': 'Translate text',      'prompt': 'Translate this to English: ', 'route': null},
+    {'icon': Icons.manage_search_rounded, 'label': 'RAG Assistant',     'prompt': '',                            'route': 'rag'},
   ];
 
   final Map<String, Map<String, String>> _uiText = {
@@ -760,6 +762,10 @@ class _NewChatScreenState extends State<NewChatScreen> {
               _quickActionTile(Icons.explore_rounded,        "Explore",      kCyanDark, () { Navigator.pop(context); messageController.text = "Explore the topic: "; }),
               _quickActionTile(Icons.calculate_rounded,      "Math",         kCyan,     () { Navigator.pop(context); messageController.text = "Solve this: "; }),
               _quickActionTile(Icons.code_rounded,           "Code",         kCyanDark, () { Navigator.pop(context); messageController.text = "Write code for: "; }),
+              _quickActionTile(Icons.manage_search_rounded, "RAG Chat", kCyan, () {
+                Navigator.pop(context);
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const RagScreen()));
+              }),
             ],
           ),
         ]),
@@ -1130,7 +1136,9 @@ class _NewChatScreenState extends State<NewChatScreen> {
                           Navigator.push(context, MaterialPageRoute(builder: (_) => const DocumentAnalyzerScreen()));
                         } else if (card['route'] == 'img_gen') {
                           Navigator.push(context, MaterialPageRoute(builder: (_) => const ImageGeneratorScreen()));
-                        } else {
+                        }else if (card['route'] == 'rag') {
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => const RagScreen()));
+                        }  else {
                           messageController.text = card['prompt'] as String;
                         }
                       },
